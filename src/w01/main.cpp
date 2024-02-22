@@ -44,6 +44,9 @@ int main()
     std::vector<uint8_t> image_data;
     image_data.reserve(image_width * image_height * 3);
 
+    std::vector<HMM_Vec3> image_color_data;
+    image_color_data.resize(image_width * image_height, {0, 0, 0});
+
     // Camera
     float focal_length = 1.0f;
     float viewport_height = 2.0f;
@@ -70,8 +73,13 @@ int main()
 
             HMM_Vec3 pixel_color = ray_color(r);
 
-            push_color(image_data, pixel_color);
+            image_color_data[j * image_width + i] = pixel_color;
         }
+    }
+
+    for (int i = 0; i < image_height * image_width; i++)
+    {
+        push_color(image_data, image_color_data[i]);
     }
 
     stbi_write_jpg("output.jpg", image_width, image_height, 3, image_data.data(), 100);
