@@ -32,15 +32,15 @@ void push_color(std::vector<uint8_t>& image_data, HMM_Vec3 pixel_color)
 float hit_sphere(const HMM_Vec3& center, float radius, const ray& r)
 {
     HMM_Vec3 oc = r.origin() - center;
-    auto a = HMM_Dot(r.direction(), r.direction());
-    auto b = 2.0f * HMM_Dot(oc, r.direction());
-    auto c = HMM_Dot(oc, oc) - (radius * radius);
-    auto discriminant = b*b - 4*a*c;
+    auto a = HMM_LenSqr(r.direction());
+    auto half_b = HMM_Dot(oc, r.direction());
+    auto c = HMM_LenSqr(oc) - (radius * radius);
+    auto discriminant = half_b*half_b - a*c;
 
     if (discriminant < 0)
         return -1.0f;
     else
-        return (-b - std::sqrtf(discriminant)) / (2.0f * a);
+        return (-half_b - std::sqrtf(discriminant)) / a;
 }
 
 HMM_Vec3 ray_color(const ray& r)
