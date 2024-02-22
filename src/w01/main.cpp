@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <vector>
+#include <cmath>
 
 class ray
 {
@@ -27,20 +28,30 @@ void push_color(std::vector<uint8_t>& image_data, HMM_Vec3 pixel_color)
     image_data.push_back(static_cast<int>(255.999 * pixel_color.Y));
     image_data.push_back(static_cast<int>(255.999 * pixel_color.Z));
 }
-bool hit_sphere(const HMM_Vec3& center, float radius, const ray& r)
+
+float hit_sphere(const HMM_Vec3& center, float radius, const ray& r)
 {
     HMM_Vec3 oc = r.origin() - center;
     auto a = HMM_Dot(r.direction(), r.direction());
     auto b = 2.0f * HMM_Dot(oc, r.direction());
     auto c = HMM_Dot(oc, oc) - (radius * radius);
     auto discriminant = b*b - 4*a*c;
-    return (discriminant >= 0);
+
+    if (discriminant < 0)
+        return -1.0f;
+    else
+        return (-b - std::sqrtf(discriminant)) / (2.0f * a);
 }
 
 HMM_Vec3 ray_color(const ray& r)
 {
-    if (hit_sphere({0, 0, -1}, 0.5, r))
-        return HMM_Vec3{1, 0, 0};
+    float t = hit_sphere(HMM_Vec3{0, 0, -1}, 0.5f, r);
+    if (t > 0)
+    {
+        HMM_Vec3 N = HMM_Norm(r.at(t) - HMM_Vec3{0, 0, -1});
+        return 0.5f * (N + HMM_Vec3{1, 1, 1});
+//        return 0.5f * HMM_Vec3{N.X + 1, N.Y + 1, N.Z + 1};
+    }
 
     HMM_Vec3 unit_direction = HMM_Norm(r.direction());
     float a = 0.5f * (unit_direction.Y + 1.0f);
@@ -76,10 +87,13 @@ int main()
 
     // Calculate the location of the upper left pixel.
     HMM_Vec3 viewport_upper_left = camera_center - HMM_Vec3{0, 0, focal_length} - viewport_u/2 - viewport_v/2;
-    HMM_Vec3 pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+    HMM_Vec3 pixel00_loc = viewport_upper_left + 0.5f * (pixel_delta_u + pixel_delta_v);
 
     for (int j = 0; j < image_height; ++j) {
         for (int i = 0; i < image_width; ++i) {
+            if ( i == 320 && j == 180)
+                int a = 0;
+
             auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
             auto ray_direction = pixel_center - camera_center;
             ray r(camera_center, ray_direction);
