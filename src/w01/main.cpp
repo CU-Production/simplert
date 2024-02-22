@@ -27,8 +27,21 @@ void push_color(std::vector<uint8_t>& image_data, HMM_Vec3 pixel_color)
     image_data.push_back(static_cast<int>(255.999 * pixel_color.Y));
     image_data.push_back(static_cast<int>(255.999 * pixel_color.Z));
 }
+bool hit_sphere(const HMM_Vec3& center, float radius, const ray& r)
+{
+    HMM_Vec3 oc = r.origin() - center;
+    auto a = HMM_Dot(r.direction(), r.direction());
+    auto b = 2.0f * HMM_Dot(oc, r.direction());
+    auto c = HMM_Dot(oc, oc) - (radius * radius);
+    auto discriminant = b*b - 4*a*c;
+    return (discriminant >= 0);
+}
 
-HMM_Vec3 ray_color(const ray& r) {
+HMM_Vec3 ray_color(const ray& r)
+{
+    if (hit_sphere({0, 0, -1}, 0.5, r))
+        return HMM_Vec3{1, 0, 0};
+
     HMM_Vec3 unit_direction = HMM_Norm(r.direction());
     float a = 0.5f * (unit_direction.Y + 1.0f);
     return HMM_Lerp(HMM_Vec3{1.0f, 1.0f, 1.0f}, a, HMM_Vec3{0.5f, 0.7f, 1.0f});
