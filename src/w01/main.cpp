@@ -14,6 +14,33 @@
 const float infinity = std::numeric_limits<float>::infinity();
 const float pi = std::numbers::pi_v<float>;
 
+class interval
+{
+public:
+    float min, max;
+
+    interval() : min(+infinity), max(-infinity) {} // Default interval is empty
+    interval(float _min, float _max) : min(_min), max(_max) {}
+
+    bool contains(float x) const {
+        return min <= x && x <= max;
+    }
+
+    bool surrounds(float x) const {
+        return min < x && x < max;
+    }
+
+    float clamp(float x) const {
+        if (x < min) return min;
+        if (x > max) return max;
+        return x;
+    }
+
+    static const interval empty, universe;
+};
+const static interval empty   (+infinity, -infinity);
+const static interval universe(-infinity, +infinity);
+
 void push_color(std::vector<uint8_t>& image_data, HMM_Vec3 pixel_color)
 {
     image_data.push_back(static_cast<int>(255.999 * pixel_color.X));
@@ -47,27 +74,6 @@ inline float random_float(float min, float max)
     // Returns a random real in [min,max).
     return min + (max - min) * random_float();
 }
-
-class interval
-{
-public:
-    float min, max;
-
-    interval() : min(+infinity), max(-infinity) {} // Default interval is empty
-    interval(float _min, float _max) : min(_min), max(_max) {}
-
-    bool contains(float x) const {
-        return min <= x && x <= max;
-    }
-
-    bool surrounds(float x) const {
-        return min < x && x < max;
-    }
-
-    static const interval empty, universe;
-};
-const static interval empty   (+infinity, -infinity);
-const static interval universe(-infinity, +infinity);
 
 class ray
 {
@@ -181,9 +187,10 @@ public:
 class camera
 {
 public:
-    float aspect_ratio = 1.0;  // Ratio of image width over height
-    int   image_width  = 100;  // Rendered image width in pixel count
-    int   image_height = 100;   // Rendered image height
+    float aspect_ratio = 1.0;       // Ratio of image width over height
+    int   image_width  = 100;       // Rendered image width in pixel count
+    int   image_height = 100;       // Rendered image height
+    int   samples_per_pixel = 10;   // Count of random samples for each pixel
 
     std::vector<HMM_Vec3> render(const hittable& world)
     {
@@ -198,9 +205,23 @@ public:
             {
                 auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
                 auto ray_direction = pixel_center - center;
-                ray r(center, ray_direction);
 
-                HMM_Vec3 pixel_color = ray_color(r, world);
+                HMM_Vec3 pixel_color = {0, 0, 0};
+
+                if (samples_per_pixel <= 1)
+                {
+                    ray r(center, ray_direction);
+                    pixel_color = ray_color(r, world);
+                }
+                else
+                {
+                    for (int sample = 0; sample < samples_per_pixel; ++sample)
+                    {
+                        ray r = get_ray(i, j);
+                        pixel_color += ray_color(r, world);
+                    }
+                    pixel_color = pixel_color * (1.0f / (float)samples_per_pixel);
+                }
 
                 image_color_data[j * image_width + i] = pixel_color;
             }
@@ -237,6 +258,26 @@ private:
         // Calculate the location of the upper left pixel.
         HMM_Vec3 viewport_upper_left = center - HMM_Vec3{0, 0, focal_length} - viewport_u/2 - viewport_v/2;
         pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+    }
+
+    ray get_ray(int i, int j) const
+    {
+        // Get a randomly sampled camera ray for the pixel at location i,j.
+        auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
+        auto pixel_sample = pixel_center + pixel_sample_square();
+
+        auto ray_origin = center;
+        auto ray_direction = pixel_sample - ray_origin;
+
+        return ray(ray_origin, ray_direction);
+    }
+
+    HMM_Vec3 pixel_sample_square() const
+    {
+        // Returns a random point in the square surrounding a pixel at the origin.
+        auto px = -0.5f + random_float();
+        auto py = -0.5f + random_float();
+        return (px * pixel_delta_u) + (py * pixel_delta_v);
     }
 
     HMM_Vec3 ray_color(const ray& r, const hittable& world) const
