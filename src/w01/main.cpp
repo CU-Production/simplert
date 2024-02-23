@@ -131,6 +131,16 @@ namespace Vec3
         HMM_Vec3 r_out_parallel = -std::sqrtf(std::fabsf(1.0f - HMM_LenSqr(r_out_perp))) * n;
         return r_out_perp + r_out_parallel;
     }
+
+    inline HMM_Vec3 random_in_unit_disk()
+    {
+        while (true)
+        {
+            HMM_Vec3 p = {random_float(-1, 1), random_float(-1, 1), 0};
+            if (HMM_LenSqr(p) < 1)
+                return p;
+        }
+    }
 };
 
 inline float linear_to_gamma(float linear_component)
@@ -351,6 +361,9 @@ public:
     HMM_Vec3 lookat   = {0,0,0};   // Point camera is looking at
     HMM_Vec3 vup      = {0,1,0};   // Camera-relative "up" direction
 
+    float defocus_angle = 0;  // Variation angle of rays through each pixel
+    float focus_dist    = 10; // Distance from camera lookfrom point to plane of perfect focus
+
     std::vector<HMM_Vec3> render(const hittable& world)
     {
         initialize();
@@ -395,11 +408,13 @@ public:
     }
 
 private:
-    HMM_Vec3 center;         // Camera center
-    HMM_Vec3 pixel00_loc;    // Location of pixel 0, 0
-    HMM_Vec3 pixel_delta_u;  // Offset to pixel to the right
-    HMM_Vec3 pixel_delta_v;  // Offset to pixel below
-    HMM_Vec3 u, v, w;        // Camera frame basis vectors
+    HMM_Vec3 center;          // Camera center
+    HMM_Vec3 pixel00_loc;     // Location of pixel 0, 0
+    HMM_Vec3 pixel_delta_u;   // Offset to pixel to the right
+    HMM_Vec3 pixel_delta_v;   // Offset to pixel below
+    HMM_Vec3 u, v, w;         // Camera frame basis vectors
+    HMM_Vec3 defocus_disk_u;  // Defocus disk horizontal radius
+    HMM_Vec3 defocus_disk_v;  // Defocus disk vertical radius
 
     void initialize()
     {
@@ -408,10 +423,9 @@ private:
         center = lookfrom;
 
         // Determine viewport dimensions.
-        float focal_length = HMM_Len(lookfrom - lookat);
         float theta = vfov * HMM_DegToRad;
         float h = std::tanf(theta/2.0f);
-        float viewport_height = 2.0f * h * focal_length;
+        float viewport_height = 2.0f * h * focus_dist;
         float viewport_width = viewport_height * ((float)image_width/(float)image_height);
 
         // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
@@ -428,17 +442,23 @@ private:
         pixel_delta_v = viewport_v / (float)image_height;
 
         // Calculate the location of the upper left pixel.
-        HMM_Vec3 viewport_upper_left = center - (focal_length * w) - viewport_u/2 - viewport_v/2;
+        HMM_Vec3 viewport_upper_left = center - (focus_dist * w) - viewport_u/2 - viewport_v/2;
         pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+        // Calculate the camera defocus disk basis vectors.
+        auto defocus_radius = focus_dist * tan((defocus_angle / 2) * HMM_DegToRad);
+        defocus_disk_u = u * defocus_radius;
+        defocus_disk_v = v * defocus_radius;
     }
 
     ray get_ray(int i, int j) const
     {
-        // Get a randomly sampled camera ray for the pixel at location i,j.
+        // Get a randomly-sampled camera ray for the pixel at location i,j, originating from
+        // the camera defocus disk.
         auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
         auto pixel_sample = pixel_center + pixel_sample_square();
 
-        auto ray_origin = center;
+        auto ray_origin = (defocus_angle <= 0) ? center : defocus_disk_sample();
         auto ray_direction = pixel_sample - ray_origin;
 
         return ray(ray_origin, ray_direction);
@@ -450,6 +470,13 @@ private:
         auto px = -0.5f + random_float();
         auto py = -0.5f + random_float();
         return (px * pixel_delta_u) + (py * pixel_delta_v);
+    }
+
+    HMM_Vec3 defocus_disk_sample() const
+    {
+        // Returns a random point in the camera defocus disk.
+        auto p = Vec3::random_in_unit_disk();
+        return center + (p.X * defocus_disk_u) + (p.Y * defocus_disk_v);
     }
 
     HMM_Vec3 ray_color(const ray& r, int depth, const hittable& world) const
@@ -498,10 +525,13 @@ int main()
     cam.aspect_ratio = 16.0f / 9.0f;
     cam.max_depth    = 50;
 
-    cam.vfov     = 90.0f;
+    cam.vfov     = 20.0f;
     cam.lookfrom = HMM_Vec3{-2,2, 1};
     cam.lookat   = HMM_Vec3{ 0,0,-1};
     cam.vup      = HMM_Vec3{ 0,1, 0};
+
+    cam.defocus_angle = 10.0f;
+    cam.focus_dist    = 3.4f;
 
     std::vector<HMM_Vec3> image_color_data = cam.render(world);
 
