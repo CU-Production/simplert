@@ -56,6 +56,19 @@ void push_color(std::vector<uint8_t>& image_data, HMM_Vec3 pixel_color)
     image_data.push_back(static_cast<int>(255.999 * pixel_color.Z));
 }
 
+void save_jpg(int image_width, int image_height, const std::vector<HMM_Vec3>& image_color_data, const char* filename)
+{
+    std::vector<uint8_t> image_data;
+    image_data.reserve(image_width * image_height * 3);
+
+    for (int i = 0; i < image_height * image_width; i++)
+    {
+        push_color(image_data, image_color_data[i]);
+    }
+
+    stbi_write_jpg(filename, image_width, image_height, 3, image_data.data(), 100);
+}
+
 struct hit_record
 {
     HMM_Vec3 p;
@@ -148,19 +161,6 @@ public:
         return hit_anything;
     }
 };
-
-HMM_Vec3 ray_color(const ray& r, const hittable& world)
-{
-    hit_record rec;
-    if (world.hit(r, interval(0, infinity), rec))
-    {
-        return 0.5 * (rec.normal + HMM_Vec3{1.0f, 1.0f, 1.0f});
-    }
-
-    HMM_Vec3 unit_direction = HMM_Norm(r.direction());
-    float a = 0.5f * (unit_direction.Y + 1.0f);
-    return HMM_Lerp(HMM_Vec3{1.0f, 1.0f, 1.0f}, a, HMM_Vec3{0.5f, 0.7f, 1.0f});
-}
 
 class camera
 {
@@ -257,15 +257,7 @@ int main()
 
     std::vector<HMM_Vec3> image_color_data = cam.render(world);
 
-    std::vector<uint8_t> image_data;
-    image_data.reserve(image_width * image_height * 3);
-
-    for (int i = 0; i < image_height * image_width; i++)
-    {
-        push_color(image_data, image_color_data[i]);
-    }
-
-    stbi_write_jpg("output.jpg", image_width, image_height, 3, image_data.data(), 100);
+    save_jpg(image_width, image_height, image_color_data, "output.jpg");
 
     return 0;
 }
