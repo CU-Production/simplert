@@ -123,6 +123,14 @@ namespace Vec3
     {
         return v - 2*HMM_Dot(v,n)*n;
     }
+
+    inline HMM_Vec3 refract(const HMM_Vec3& uv, const HMM_Vec3& n, float etai_over_etat)
+    {
+        auto cos_theta = std::fminf(HMM_Dot(-uv, n), 1.0f);
+        HMM_Vec3 r_out_perp = etai_over_etat * (uv + cos_theta*n);
+        HMM_Vec3 r_out_parallel = -std::sqrtf(std::fabsf(1.0f - HMM_LenSqr(r_out_perp))) * n;
+        return r_out_perp + r_out_parallel;
+    }
 };
 
 inline float linear_to_gamma(float linear_component)
@@ -211,6 +219,27 @@ public:
 private:
     HMM_Vec3 albedo;
     float fuzz;
+};
+
+class dielectric : public material
+{
+public:
+    dielectric(float index_of_refraction) : ir(index_of_refraction) {}
+
+    bool scatter(const ray& r_in, const hit_record& rec, HMM_Vec3& attenuation, ray& scattered) const override
+    {
+        attenuation = {1.0, 1.0, 1.0};
+        float refraction_ratio = rec.front_face ? (1.0f/ir) : ir;
+
+        HMM_Vec3 unit_direction = HMM_Norm(r_in.direction());
+        HMM_Vec3 refracted = Vec3::refract(unit_direction, rec.normal, refraction_ratio);
+
+        scattered = ray(rec.p, refracted);
+        return true;
+    }
+
+private:
+    float ir; // Index of Refraction
 };
 
 class hittable
@@ -402,9 +431,6 @@ private:
         hit_record rec;
         if (world.hit(r, interval(0.001, infinity), rec))
         {
-//            HMM_Vec3 direction = Vec3::random_on_hemisphere(rec.normal);
-//            HMM_Vec3 direction = rec.normal + Vec3::random_unit_vector();
-//            return 0.1 * ray_color(ray(rec.p, direction), depth-1, world);
             ray scattered;
             HMM_Vec3 attenuation;
             if (rec.mat->scatter(r, rec, attenuation, scattered))
@@ -425,8 +451,10 @@ int main()
     hittable_list world;
 
     auto material_ground = std::make_shared<lambertian>(HMM_Vec3{0.8, 0.8, 0.0});
-    auto material_center = std::make_shared<lambertian>(HMM_Vec3{0.7, 0.3, 0.3});
-    auto material_left   = std::make_shared<metal>(HMM_Vec3{0.8, 0.8, 0.8}, 0.3);
+    // auto material_center = std::make_shared<lambertian>(HMM_Vec3{0.7, 0.3, 0.3});
+    // auto material_left   = std::make_shared<metal>(HMM_Vec3{0.8, 0.8, 0.8}, 0.3);
+    auto material_center = std::make_shared<dielectric>(1.5);
+    auto material_left   = std::make_shared<dielectric>(1.5);
     auto material_right  = std::make_shared<metal>(HMM_Vec3{0.8, 0.6, 0.2}, 1.0);
 
     world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0, -100.5, -1.0}, 100.0, material_ground));
