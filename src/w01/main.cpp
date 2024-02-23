@@ -238,7 +238,7 @@ public:
         bool cannot_refract = refraction_ratio * sin_theta > 1.0;
         HMM_Vec3 direction;
 
-        if (cannot_refract)
+        if (cannot_refract || reflectance(cos_theta, refraction_ratio) > random_float())
             direction = Vec3::reflect(unit_direction, rec.normal);
         else
             direction = Vec3::refract(unit_direction, rec.normal, refraction_ratio);
@@ -249,6 +249,14 @@ public:
 
 private:
     float ir; // Index of Refraction
+
+    static float reflectance(float cosine, float ref_idx)
+    {
+        // Use Schlick's approximation for reflectance.
+        auto r0 = (1-ref_idx) / (1+ref_idx);
+        r0 = r0*r0;
+        return r0 + (1-r0)*std::powf((1 - cosine), 5);
+    }
 };
 
 class hittable
@@ -467,6 +475,7 @@ int main()
     world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0, -100.5, -1.0}, 100.0, material_ground));
     world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0,    0.0, -1.0},   0.5, material_center));
     world.add(std::make_shared<sphere>(HMM_Vec3{-1.0,    0.0, -1.0},   0.5, material_left));
+    world.add(std::make_shared<sphere>(HMM_Vec3{-1.0,    0.0, -1.0},  -0.4, material_left));
     world.add(std::make_shared<sphere>(HMM_Vec3{ 1.0,    0.0, -1.0},   0.5, material_right));
 
     camera cam;
