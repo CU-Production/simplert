@@ -112,7 +112,10 @@ namespace Vec3
     }
 };
 
-
+inline float linear_to_gamma(float linear_component)
+{
+    return std::sqrtf(linear_component);
+}
 
 class ray
 {
@@ -263,6 +266,11 @@ public:
                     pixel_color = pixel_color * (1.0f / (float)samples_per_pixel);
                 }
 
+                // Apply the linear to gamma transform.
+                pixel_color.X = linear_to_gamma(pixel_color.X);
+                pixel_color.Y = linear_to_gamma(pixel_color.Y);
+                pixel_color.Z = linear_to_gamma(pixel_color.Z);
+
                 image_color_data[j * image_width + i] = pixel_color;
             }
         }
@@ -331,7 +339,7 @@ private:
         {
 //            HMM_Vec3 direction = Vec3::random_on_hemisphere(rec.normal);
             HMM_Vec3 direction = rec.normal + Vec3::random_unit_vector();
-            return 0.5 * ray_color(ray(rec.p, direction), depth-1, world);
+            return 0.1 * ray_color(ray(rec.p, direction), depth-1, world);
         }
 
         HMM_Vec3 unit_direction = HMM_Norm(r.direction());
