@@ -75,6 +75,45 @@ inline float random_float(float min, float max)
     return min + (max - min) * random_float();
 }
 
+namespace Vec3
+{
+    inline HMM_Vec3 random_vec3()
+    {
+        return HMM_Vec3{random_float(), random_float(), random_float()};
+    }
+
+    inline HMM_Vec3 random_vec3(float min, float max)
+    {
+        return HMM_Vec3{random_float(min, max), random_float(min, max), random_float(min, max)};
+    }
+
+    inline HMM_Vec3 random_in_unit_sphere()
+    {
+        while (true)
+        {
+            auto p = random_vec3(-1, 1);
+            if (HMM_LenSqr(p) < 1)
+                return p;
+        }
+    }
+
+    inline HMM_Vec3 random_unit_vector()
+    {
+        return HMM_Norm(random_in_unit_sphere());
+    }
+
+    inline HMM_Vec3 random_on_hemisphere(const HMM_Vec3& normal)
+    {
+        auto on_unit_sphere = random_unit_vector();
+        if (HMM_Dot(on_unit_sphere, normal) > 0.0f) // In the same hemisphere as the normal
+            return on_unit_sphere;
+        else
+            return -on_unit_sphere;
+    }
+};
+
+
+
 class ray
 {
 public:
@@ -285,7 +324,8 @@ private:
         hit_record rec;
         if (world.hit(r, interval(0, infinity), rec))
         {
-            return 0.5 * (rec.normal + HMM_Vec3{1.0f, 1.0f, 1.0f});
+            HMM_Vec3 direction = Vec3::random_on_hemisphere(rec.normal);
+            return 0.5 * ray_color(ray(rec.p, direction), world);
         }
 
         HMM_Vec3 unit_direction = HMM_Norm(r.direction());
