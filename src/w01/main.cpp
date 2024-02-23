@@ -340,11 +340,16 @@ public:
 class camera
 {
 public:
-    float aspect_ratio      = 1.0;  // Ratio of image width over height
-    int   image_width       = 100;  // Rendered image width in pixel count
-    int   image_height      = 100;  // Rendered image height
-    int   samples_per_pixel = 10;   // Count of random samples for each pixel
-    int   max_depth         = 10;   // Maximum number of ray bounces into scene
+    float aspect_ratio      = 1.0f;  // Ratio of image width over height
+    int   image_width       = 100;   // Rendered image width in pixel count
+    int   image_height      = 100;   // Rendered image height
+    int   samples_per_pixel = 10;    // Count of random samples for each pixel
+    int   max_depth         = 10;    // Maximum number of ray bounces into scene
+
+    float vfov        = 90.0f;            // Vertical view angle (field of view)
+    HMM_Vec3 lookfrom = {0,0,-1};  // Point camera is looking from
+    HMM_Vec3 lookat   = {0,0,0};   // Point camera is looking at
+    HMM_Vec3 vup      = {0,1,0};   // Camera-relative "up" direction
 
     std::vector<HMM_Vec3> render(const hittable& world)
     {
@@ -394,28 +399,36 @@ private:
     HMM_Vec3 pixel00_loc;    // Location of pixel 0, 0
     HMM_Vec3 pixel_delta_u;  // Offset to pixel to the right
     HMM_Vec3 pixel_delta_v;  // Offset to pixel below
+    HMM_Vec3 u, v, w;        // Camera frame basis vectors
 
     void initialize()
     {
         aspect_ratio = (float)image_width / (float)image_height;
 
-        center = HMM_Vec3{0, 0, 0};
+        center = lookfrom;
 
         // Determine viewport dimensions.
-        float focal_length = 1.0;
-        float viewport_height = 2.0;
+        float focal_length = HMM_Len(lookfrom - lookat);
+        float theta = vfov * HMM_DegToRad;
+        float h = std::tanf(theta/2.0f);
+        float viewport_height = 2.0f * h * focal_length;
         float viewport_width = viewport_height * ((float)image_width/(float)image_height);
 
+        // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
+        w = HMM_Norm(lookfrom - lookat);
+        u = HMM_Norm(HMM_Cross(vup, w));
+        v = HMM_Cross(w, u);
+
         // Calculate the vectors across the horizontal and down the vertical viewport edges.
-        auto viewport_u = HMM_Vec3{viewport_width, 0, 0};
-        auto viewport_v = HMM_Vec3{0, -viewport_height, 0};
+        HMM_Vec3 viewport_u = viewport_width * u;    // Vector across viewport horizontal edge
+        HMM_Vec3 viewport_v = viewport_height * -v;  // Vector down viewport vertical edge
 
         // Calculate the horizontal and vertical delta vectors from pixel to pixel.
         pixel_delta_u = viewport_u / (float)image_width;
         pixel_delta_v = viewport_v / (float)image_height;
 
         // Calculate the location of the upper left pixel.
-        HMM_Vec3 viewport_upper_left = center - HMM_Vec3{0, 0, focal_length} - viewport_u/2 - viewport_v/2;
+        HMM_Vec3 viewport_upper_left = center - (focal_length * w) - viewport_u/2 - viewport_v/2;
         pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
     }
 
@@ -467,16 +480,24 @@ int main()
 
     hittable_list world;
 
-    auto material_ground = std::make_shared<lambertian>(HMM_Vec3{0.8, 0.8, 0.0});
-    auto material_center = std::make_shared<lambertian>(HMM_Vec3{0.1, 0.2, 0.5});
-    auto material_left   = std::make_shared<dielectric>(1.5);
-    auto material_right  = std::make_shared<metal>(HMM_Vec3{0.8, 0.6, 0.2}, 0.0);
+    // auto material_ground = std::make_shared<lambertian>(HMM_Vec3{0.8, 0.8, 0.0});
+    // auto material_center = std::make_shared<lambertian>(HMM_Vec3{0.1, 0.2, 0.5});
+    // auto material_left   = std::make_shared<dielectric>(1.5);
+    // auto material_right  = std::make_shared<metal>(HMM_Vec3{0.8, 0.6, 0.2}, 0.0);
+    //
+    // world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0, -100.5, -1.0}, 100.0, material_ground));
+    // world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0,    0.0, -1.0},   0.5, material_center));
+    // world.add(std::make_shared<sphere>(HMM_Vec3{-1.0,    0.0, -1.0},   0.5, material_left));
+    // world.add(std::make_shared<sphere>(HMM_Vec3{-1.0,    0.0, -1.0},  -0.4, material_left));
+    // world.add(std::make_shared<sphere>(HMM_Vec3{ 1.0,    0.0, -1.0},   0.5, material_right));
 
-    world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0, -100.5, -1.0}, 100.0, material_ground));
-    world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0,    0.0, -1.0},   0.5, material_center));
-    world.add(std::make_shared<sphere>(HMM_Vec3{-1.0,    0.0, -1.0},   0.5, material_left));
-    world.add(std::make_shared<sphere>(HMM_Vec3{-1.0,    0.0, -1.0},  -0.4, material_left));
-    world.add(std::make_shared<sphere>(HMM_Vec3{ 1.0,    0.0, -1.0},   0.5, material_right));
+    auto R = cos(pi/4);
+
+    auto material_left  = std::make_shared<lambertian>(HMM_Vec3{0,0,1});
+    auto material_right = std::make_shared<lambertian>(HMM_Vec3{1,0,0});
+
+    world.add(std::make_shared<sphere>(HMM_Vec3{-R, 0, -1}, R, material_left));
+    world.add(std::make_shared<sphere>(HMM_Vec3{ R, 0, -1}, R, material_right));
 
     camera cam;
 
@@ -484,6 +505,8 @@ int main()
     cam.image_height = 360;
     cam.aspect_ratio = 16.0f / 9.0f;
     cam.max_depth    = 50;
+
+    cam.vfov = 90;
 
     std::vector<HMM_Vec3> image_color_data = cam.render(world);
 
