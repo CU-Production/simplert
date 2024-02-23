@@ -128,27 +128,12 @@ public:
     }
 };
 
-float hit_sphere(const HMM_Vec3& center, float radius, const ray& r)
+HMM_Vec3 ray_color(const ray& r, const hittable& world)
 {
-    HMM_Vec3 oc = r.origin() - center;
-    auto a = HMM_LenSqr(r.direction());
-    auto half_b = HMM_Dot(oc, r.direction());
-    auto c = HMM_LenSqr(oc) - (radius * radius);
-    auto discriminant = half_b*half_b - a*c;
-
-    if (discriminant < 0)
-        return -1.0f;
-    else
-        return (-half_b - std::sqrtf(discriminant)) / a;
-}
-
-HMM_Vec3 ray_color(const ray& r)
-{
-    float t = hit_sphere(HMM_Vec3{0, 0, -1}, 0.5f, r);
-    if (t > 0)
+    hit_record rec;
+    if (world.hit(r, 0, infinity, rec))
     {
-        HMM_Vec3 N = HMM_Norm(r.at(t) - HMM_Vec3{0, 0, -1});
-        return 0.5f * (N + HMM_Vec3{1, 1, 1});
+        return 0.5 * (rec.normal + HMM_Vec3{1.0f, 1.0f, 1.0f});
     }
 
     HMM_Vec3 unit_direction = HMM_Norm(r.direction());
@@ -168,6 +153,11 @@ int main()
 
     std::vector<HMM_Vec3> image_color_data;
     image_color_data.resize(image_width * image_height, {0, 0, 0});
+
+    // World
+    hittable_list world;
+    world.add(std::make_shared<sphere>(HMM_Vec3{0, 0, -1}, 0.5));
+    world.add(std::make_shared<sphere>(HMM_Vec3{0, -100.5, -1}, 100));
 
     // Camera
     float focal_length = 1.0f;
@@ -195,7 +185,7 @@ int main()
             auto ray_direction = pixel_center - camera_center;
             ray r(camera_center, ray_direction);
 
-            HMM_Vec3 pixel_color = ray_color(r);
+            HMM_Vec3 pixel_color = ray_color(r, world);
 
             image_color_data[j * image_width + i] = pixel_color;
         }
