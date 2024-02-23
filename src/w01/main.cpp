@@ -12,6 +12,27 @@
 const float infinity = std::numeric_limits<float>::infinity();
 const float pi = std::numbers::pi_v<float>;
 
+class interval
+{
+public:
+    float min, max;
+
+    interval() : min(+infinity), max(-infinity) {} // Default interval is empty
+    interval(float _min, float _max) : min(_min), max(_max) {}
+
+    bool contains(float x) const {
+        return min <= x && x <= max;
+    }
+
+    bool surrounds(float x) const {
+        return min < x && x < max;
+    }
+
+    static const interval empty, universe;
+};
+const static interval empty   (+infinity, -infinity);
+const static interval universe(-infinity, +infinity);
+
 class ray
 {
 public:
@@ -56,7 +77,7 @@ class hittable
 {
 public:
     virtual ~hittable() = default;
-    virtual bool hit(const ray& r, float ray_tmin, float ray_tmax, hit_record& rec) const = 0;
+    virtual bool hit(const ray& r, interval ray_t, hit_record& rec) const = 0;
 };
 
 class sphere : public hittable
@@ -64,7 +85,7 @@ class sphere : public hittable
 public:
     sphere(HMM_Vec3 _center, float _radius) : center(_center), radius(_radius) {}
 
-    bool hit(const ray& r, float ray_tmin, float ray_tmax, hit_record& rec) const override
+    bool hit(const ray& r, interval ray_t, hit_record& rec) const override
     {
         HMM_Vec3 oc = r.origin() - center;
         auto a = HMM_LenSqr(r.direction());
@@ -77,10 +98,10 @@ public:
 
         // Find the nearest root that lies in the acceptable range.
         auto root = (-half_b - sqrtd) / a;
-        if (root <= ray_tmin || ray_tmax <= root)
+        if (!ray_t.surrounds(root))
         {
             root = (-half_b + sqrtd) / a;
-            if (root <= ray_tmin || ray_tmax <= root)
+            if (!ray_t.surrounds(root))
                 return false;
         }
 
@@ -108,15 +129,15 @@ public:
     void clear() { objects.clear(); }
     void add(std::shared_ptr<hittable> object) { objects.push_back(object); }
 
-    bool hit(const ray& r, float ray_tmin, float ray_tmax, hit_record& rec) const override
+    bool hit(const ray& r, interval ray_t, hit_record& rec) const override
     {
         hit_record temp_rcc;
         bool hit_anything = false;
-        float closest_so_far = ray_tmax;
+        float closest_so_far = ray_t.max;
 
         for (const auto& object : objects)
         {
-            if (object->hit(r, ray_tmin, closest_so_far, temp_rcc))
+            if (object->hit(r, interval(ray_t.min, closest_so_far), temp_rcc))
             {
                 hit_anything = true;
                 closest_so_far = temp_rcc.t;
@@ -131,7 +152,7 @@ public:
 HMM_Vec3 ray_color(const ray& r, const hittable& world)
 {
     hit_record rec;
-    if (world.hit(r, 0, infinity, rec))
+    if (world.hit(r, interval(0, infinity), rec))
     {
         return 0.5 * (rec.normal + HMM_Vec3{1.0f, 1.0f, 1.0f});
     }
