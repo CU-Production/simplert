@@ -226,10 +226,11 @@ public:
 class camera
 {
 public:
-    float aspect_ratio = 1.0;       // Ratio of image width over height
-    int   image_width  = 100;       // Rendered image width in pixel count
-    int   image_height = 100;       // Rendered image height
+    float aspect_ratio      = 1.0;  // Ratio of image width over height
+    int   image_width       = 100;  // Rendered image width in pixel count
+    int   image_height      = 100;  // Rendered image height
     int   samples_per_pixel = 10;   // Count of random samples for each pixel
+    int   max_depth         = 10;   // Maximum number of ray bounces into scene
 
     std::vector<HMM_Vec3> render(const hittable& world)
     {
@@ -250,14 +251,14 @@ public:
                 if (samples_per_pixel <= 1)
                 {
                     ray r(center, ray_direction);
-                    pixel_color = ray_color(r, world);
+                    pixel_color = ray_color(r, max_depth, world);
                 }
                 else
                 {
                     for (int sample = 0; sample < samples_per_pixel; ++sample)
                     {
                         ray r = get_ray(i, j);
-                        pixel_color += ray_color(r, world);
+                        pixel_color += ray_color(r, max_depth, world);
                     }
                     pixel_color = pixel_color * (1.0f / (float)samples_per_pixel);
                 }
@@ -319,13 +320,17 @@ private:
         return (px * pixel_delta_u) + (py * pixel_delta_v);
     }
 
-    HMM_Vec3 ray_color(const ray& r, const hittable& world) const
+    HMM_Vec3 ray_color(const ray& r, int depth, const hittable& world) const
     {
+        // If we've exceeded the ray bounce limit, no more light is gathered.
+        if (depth <= 0)
+            return HMM_Vec3{0,0,0};
+
         hit_record rec;
         if (world.hit(r, interval(0, infinity), rec))
         {
             HMM_Vec3 direction = Vec3::random_on_hemisphere(rec.normal);
-            return 0.5 * ray_color(ray(rec.p, direction), world);
+            return 0.5 * ray_color(ray(rec.p, direction), depth-1, world);
         }
 
         HMM_Vec3 unit_direction = HMM_Norm(r.direction());
@@ -336,11 +341,6 @@ private:
 
 int main()
 {
-    // Image
-    const int image_width = 640;
-    const int image_height = 360;
-    const float aspect_ratio = 16.0f / 9.0f;
-
     hittable_list world;
 
     world.add(std::make_shared<sphere>(HMM_Vec3{0,0,-1}, 0.5));
@@ -348,13 +348,14 @@ int main()
 
     camera cam;
 
-    cam.image_width  = image_width;
-    cam.image_height = image_height;
-    cam.aspect_ratio = aspect_ratio;
+    cam.image_width  = 640;
+    cam.image_height = 360;
+    cam.aspect_ratio = 16.0f / 9.0f;
+    cam.max_depth    = 50;
 
     std::vector<HMM_Vec3> image_color_data = cam.render(world);
 
-    save_jpg(image_width, image_height, image_color_data, "output.jpg");
+    save_jpg(cam.image_width, cam.image_height, image_color_data, "output.jpg");
 
     return 0;
 }
