@@ -232,9 +232,18 @@ public:
         float refraction_ratio = rec.front_face ? (1.0f/ir) : ir;
 
         HMM_Vec3 unit_direction = HMM_Norm(r_in.direction());
-        HMM_Vec3 refracted = Vec3::refract(unit_direction, rec.normal, refraction_ratio);
+        float cos_theta = std::fminf(HMM_Dot(-unit_direction, rec.normal), 1.0);
+        float sin_theta = std::sqrtf(1.0f - cos_theta*cos_theta);
 
-        scattered = ray(rec.p, refracted);
+        bool cannot_refract = refraction_ratio * sin_theta > 1.0;
+        HMM_Vec3 direction;
+
+        if (cannot_refract)
+            direction = Vec3::reflect(unit_direction, rec.normal);
+        else
+            direction = Vec3::refract(unit_direction, rec.normal, refraction_ratio);
+
+        scattered = ray(rec.p, direction);
         return true;
     }
 
@@ -451,11 +460,9 @@ int main()
     hittable_list world;
 
     auto material_ground = std::make_shared<lambertian>(HMM_Vec3{0.8, 0.8, 0.0});
-    // auto material_center = std::make_shared<lambertian>(HMM_Vec3{0.7, 0.3, 0.3});
-    // auto material_left   = std::make_shared<metal>(HMM_Vec3{0.8, 0.8, 0.8}, 0.3);
-    auto material_center = std::make_shared<dielectric>(1.5);
+    auto material_center = std::make_shared<lambertian>(HMM_Vec3{0.1, 0.2, 0.5});
     auto material_left   = std::make_shared<dielectric>(1.5);
-    auto material_right  = std::make_shared<metal>(HMM_Vec3{0.8, 0.6, 0.2}, 1.0);
+    auto material_right  = std::make_shared<metal>(HMM_Vec3{0.8, 0.6, 0.2}, 0.0);
 
     world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0, -100.5, -1.0}, 100.0, material_ground));
     world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0,    0.0, -1.0},   0.5, material_center));
