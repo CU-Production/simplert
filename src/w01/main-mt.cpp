@@ -401,39 +401,6 @@ public:
             image_color_data[j * image_width + i] = pixel_color;
         });
 
-        // for (int j = 0; j < image_height; ++j)
-        // {
-        //     for (int i = 0; i < image_width; ++i)
-        //     {
-        //         auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
-        //         auto ray_direction = pixel_center - center;
-        //
-        //         HMM_Vec3 pixel_color = {0, 0, 0};
-        //
-        //         if (samples_per_pixel <= 1)
-        //         {
-        //             ray r(center, ray_direction);
-        //             pixel_color = ray_color(r, max_depth, world);
-        //         }
-        //         else
-        //         {
-        //             for (int sample = 0; sample < samples_per_pixel; ++sample)
-        //             {
-        //                 ray r = get_ray(i, j);
-        //                 pixel_color += ray_color(r, max_depth, world);
-        //             }
-        //             pixel_color = pixel_color * (1.0f / (float)samples_per_pixel);
-        //         }
-        //
-        //         // Apply the linear to gamma transform.
-        //         pixel_color.X = linear_to_gamma(pixel_color.X);
-        //         pixel_color.Y = linear_to_gamma(pixel_color.Y);
-        //         pixel_color.Z = linear_to_gamma(pixel_color.Z);
-        //
-        //         image_color_data[j * image_width + i] = pixel_color;
-        //     }
-        // }
-
         return image_color_data;
     }
 
@@ -583,7 +550,7 @@ int main()
     cam.image_height = 360;
     cam.aspect_ratio = 16.0f / 9.0f;
     cam.max_depth    = 50;
-    cam.samples_per_pixel = 100;
+    cam.samples_per_pixel = 500;
 
     cam.vfov     = 20.0f;
     cam.lookfrom = HMM_Vec3{13,2,3};
