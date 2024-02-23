@@ -507,16 +507,45 @@ int main()
 
     hittable_list world;
 
-    auto material_ground = std::make_shared<lambertian>(HMM_Vec3{0.8, 0.8, 0.0});
-    auto material_center = std::make_shared<lambertian>(HMM_Vec3{0.1, 0.2, 0.5});
-    auto material_left   = std::make_shared<dielectric>(1.5);
-    auto material_right  = std::make_shared<metal>(HMM_Vec3{0.8, 0.6, 0.2}, 0.0);
+    auto ground_material = std::make_shared<lambertian>(HMM_Vec3{0.5, 0.5, 0.5});
+    world.add(std::make_shared<sphere>(HMM_Vec3{0,-1000,0}, 1000, ground_material));
 
-    world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0, -100.5, -1.0}, 100.0, material_ground));
-    world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0,    0.0, -1.0},   0.5, material_center));
-    world.add(std::make_shared<sphere>(HMM_Vec3{-1.0,    0.0, -1.0},   0.5, material_left));
-    world.add(std::make_shared<sphere>(HMM_Vec3{-1.0,    0.0, -1.0},  -0.4, material_left));
-    world.add(std::make_shared<sphere>(HMM_Vec3{ 1.0,    0.0, -1.0},   0.5, material_right));
+    for (int a = -11; a < 11; a++) {
+        for (int b = -11; b < 11; b++) {
+            auto choose_mat = random_float();
+            HMM_Vec3 center = {a + 0.9f*random_float(), 0.2, b + 0.9f*random_float()};
+
+            if (HMM_Len(center - HMM_Vec3{4, 0.2, 0}) > 0.9) {
+                std::shared_ptr<material> sphere_material;
+
+                if (choose_mat < 0.8) {
+                    // diffuse
+                    auto albedo = Vec3::random_vec3() * Vec3::random_vec3();
+                    sphere_material = std::make_shared<lambertian>(albedo);
+                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
+                } else if (choose_mat < 0.95) {
+                    // metal
+                    auto albedo = Vec3::random_vec3(0.5, 1);
+                    auto fuzz = random_float(0, 0.5);
+                    sphere_material = std::make_shared<metal>(albedo, fuzz);
+                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
+                } else {
+                    // glass
+                    sphere_material = std::make_shared<dielectric>(1.5);
+                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
+                }
+            }
+        }
+    }
+
+    auto material1 = std::make_shared<dielectric>(1.5);
+    world.add(std::make_shared<sphere>(HMM_Vec3{0, 1, 0}, 1.0, material1));
+
+    auto material2 = std::make_shared<lambertian>(HMM_Vec3{0.4, 0.2, 0.1});
+    world.add(std::make_shared<sphere>(HMM_Vec3{-4, 1, 0}, 1.0, material2));
+
+    auto material3 = std::make_shared<metal>(HMM_Vec3{0.7, 0.6, 0.5}, 0.0);
+    world.add(std::make_shared<sphere>(HMM_Vec3{4, 1, 0}, 1.0, material3));
 
     camera cam;
 
@@ -524,14 +553,15 @@ int main()
     cam.image_height = 360;
     cam.aspect_ratio = 16.0f / 9.0f;
     cam.max_depth    = 50;
+    cam.samples_per_pixel = 100;
 
     cam.vfov     = 20.0f;
-    cam.lookfrom = HMM_Vec3{-2,2, 1};
-    cam.lookat   = HMM_Vec3{ 0,0,-1};
+    cam.lookfrom = HMM_Vec3{13,2,3};
+    cam.lookat   = HMM_Vec3{ 0,0,0};
     cam.vup      = HMM_Vec3{ 0,1, 0};
 
-    cam.defocus_angle = 10.0f;
-    cam.focus_dist    = 3.4f;
+    cam.defocus_angle = 0.6f;
+    cam.focus_dist    = 10.0f;
 
     std::vector<HMM_Vec3> image_color_data = cam.render(world);
 
