@@ -8,6 +8,7 @@
 #include <limits>
 #include <numbers>
 #include <random>
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 
@@ -110,6 +111,18 @@ namespace Vec3
         else
             return -on_unit_sphere;
     }
+
+    bool vec3_near_zero(const HMM_Vec3& v)
+    {
+        // Return true if the vector is close to zero in all dimensions.
+        auto s = 1e-8f;
+        return (std::fabsf(v.X) < s) && (std::fabsf(v.Y) < s) && (std::fabsf(v.Z) < s);
+    }
+
+    inline HMM_Vec3 reflect(const HMM_Vec3& v, const HMM_Vec3& n)
+    {
+        return v - 2*HMM_Dot(v,n)*n;
+    }
 };
 
 inline float linear_to_gamma(float linear_component)
@@ -133,10 +146,12 @@ private:
     HMM_Vec3 dir;
 };
 
+class material;
 struct hit_record
 {
     HMM_Vec3 p;
     HMM_Vec3 normal;
+    std::shared_ptr<material> mat;
     float t;
     bool front_face;
 
@@ -150,6 +165,53 @@ struct hit_record
     }
 };
 
+class material
+{
+public:
+    virtual ~material() = default;
+
+    virtual bool scatter(const ray& r_in, const hit_record& rec, HMM_Vec3& attenuation, ray& scattered) const = 0;
+};
+
+class lambertian : public material
+{
+public:
+    lambertian(const HMM_Vec3& a) : albedo(a) {}
+
+    bool scatter(const ray& r_in, const hit_record& rec, HMM_Vec3& attenuation, ray& scattered) const override
+    {
+        auto scatter_direction = rec.normal + Vec3::random_unit_vector();
+
+        // Catch degenerate scatter direction
+        if (Vec3::vec3_near_zero(scatter_direction))
+            scatter_direction = rec.normal;
+
+        scattered = ray(rec.p, scatter_direction);
+        attenuation = albedo;
+        return true;
+    }
+
+private:
+    HMM_Vec3 albedo;
+};
+
+class metal : public material
+{
+public:
+    metal(const HMM_Vec3 & a) : albedo(a) {}
+
+    bool scatter(const ray& r_in, const hit_record& rec, HMM_Vec3& attenuation, ray& scattered) const override
+    {
+        HMM_Vec3 reflected = Vec3::reflect(HMM_Norm(r_in.direction()), rec.normal);
+        scattered = ray(rec.p, reflected);
+        attenuation = albedo;
+        return true;
+    }
+
+private:
+    HMM_Vec3 albedo;
+};
+
 class hittable
 {
 public:
@@ -160,7 +222,7 @@ public:
 class sphere : public hittable
 {
 public:
-    sphere(HMM_Vec3 _center, float _radius) : center(_center), radius(_radius) {}
+    sphere(HMM_Vec3 _center, float _radius, std::shared_ptr<material> _material) : center(_center), radius(_radius), mat(_material) {}
 
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override
     {
@@ -186,6 +248,7 @@ public:
         rec.p = r.at(rec.t);
         HMM_Vec3 outward_normal = (rec.p - center) / radius;
         rec.set_face_normal(r, outward_normal);
+        rec.mat = mat;
 
         return true;
     }
@@ -193,6 +256,7 @@ public:
 private:
     HMM_Vec3 center;
     float radius;
+    std::shared_ptr<material> mat;
 };
 
 class hittable_list : public hittable
@@ -338,8 +402,13 @@ private:
         if (world.hit(r, interval(0.001, infinity), rec))
         {
 //            HMM_Vec3 direction = Vec3::random_on_hemisphere(rec.normal);
-            HMM_Vec3 direction = rec.normal + Vec3::random_unit_vector();
-            return 0.1 * ray_color(ray(rec.p, direction), depth-1, world);
+//            HMM_Vec3 direction = rec.normal + Vec3::random_unit_vector();
+//            return 0.1 * ray_color(ray(rec.p, direction), depth-1, world);
+            ray scattered;
+            HMM_Vec3 attenuation;
+            if (rec.mat->scatter(r, rec, attenuation, scattered))
+                return attenuation * ray_color(scattered, depth-1, world);
+            return HMM_Vec3{0, 0, 0};
         }
 
         HMM_Vec3 unit_direction = HMM_Norm(r.direction());
@@ -350,10 +419,19 @@ private:
 
 int main()
 {
+    auto timeStart = std::chrono::high_resolution_clock::now();
+
     hittable_list world;
 
-    world.add(std::make_shared<sphere>(HMM_Vec3{0,0,-1}, 0.5));
-    world.add(std::make_shared<sphere>(HMM_Vec3{0,-100.5,-1}, 100));
+    auto material_ground = std::make_shared<lambertian>(HMM_Vec3{0.8, 0.8, 0.0});
+    auto material_center = std::make_shared<lambertian>(HMM_Vec3{0.7, 0.3, 0.3});
+    auto material_left   = std::make_shared<metal>(HMM_Vec3{0.8, 0.8, 0.8});
+    auto material_right  = std::make_shared<metal>(HMM_Vec3{0.8, 0.6, 0.2});
+
+    world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0, -100.5, -1.0}, 100.0, material_ground));
+    world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0,    0.0, -1.0},   0.5, material_center));
+    world.add(std::make_shared<sphere>(HMM_Vec3{-1.0,    0.0, -1.0},   0.5, material_left));
+    world.add(std::make_shared<sphere>(HMM_Vec3{ 1.0,    0.0, -1.0},   0.5, material_right));
 
     camera cam;
 
@@ -366,5 +444,9 @@ int main()
 
     save_jpg(cam.image_width, cam.image_height, image_color_data, "output.jpg");
 
+    auto timeEnd = std::chrono::high_resolution_clock::now();
+
+    uint64_t milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(timeEnd - timeStart).count();
+    std::cout << "Time taken: " << milliseconds << "ms" << std::endl;
     return 0;
 }
