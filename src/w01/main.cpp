@@ -198,18 +198,19 @@ private:
 class metal : public material
 {
 public:
-    metal(const HMM_Vec3 & a) : albedo(a) {}
+    metal(const HMM_Vec3 & a, float f) : albedo(a), fuzz(f < 1 ? f : 1.0f) {}
 
     bool scatter(const ray& r_in, const hit_record& rec, HMM_Vec3& attenuation, ray& scattered) const override
     {
         HMM_Vec3 reflected = Vec3::reflect(HMM_Norm(r_in.direction()), rec.normal);
-        scattered = ray(rec.p, reflected);
+        scattered = ray(rec.p, reflected + fuzz*Vec3::random_unit_vector());
         attenuation = albedo;
-        return true;
+        return (HMM_Dot(scattered.direction(), rec.normal) > 0);;
     }
 
 private:
     HMM_Vec3 albedo;
+    float fuzz;
 };
 
 class hittable
@@ -425,8 +426,8 @@ int main()
 
     auto material_ground = std::make_shared<lambertian>(HMM_Vec3{0.8, 0.8, 0.0});
     auto material_center = std::make_shared<lambertian>(HMM_Vec3{0.7, 0.3, 0.3});
-    auto material_left   = std::make_shared<metal>(HMM_Vec3{0.8, 0.8, 0.8});
-    auto material_right  = std::make_shared<metal>(HMM_Vec3{0.8, 0.6, 0.2});
+    auto material_left   = std::make_shared<metal>(HMM_Vec3{0.8, 0.8, 0.8}, 0.3);
+    auto material_right  = std::make_shared<metal>(HMM_Vec3{0.8, 0.6, 0.2}, 1.0);
 
     world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0, -100.5, -1.0}, 100.0, material_ground));
     world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0,    0.0, -1.0},   0.5, material_center));
