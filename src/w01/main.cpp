@@ -327,9 +327,10 @@ private:
             return HMM_Vec3{0,0,0};
 
         hit_record rec;
-        if (world.hit(r, interval(0, infinity), rec))
+        if (world.hit(r, interval(0.001, infinity), rec))
         {
-            HMM_Vec3 direction = Vec3::random_on_hemisphere(rec.normal);
+//            HMM_Vec3 direction = Vec3::random_on_hemisphere(rec.normal);
+            HMM_Vec3 direction = rec.normal + Vec3::random_unit_vector();
             return 0.5 * ray_color(ray(rec.p, direction), depth-1, world);
         }
 
