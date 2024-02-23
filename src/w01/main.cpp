@@ -4,13 +4,46 @@
 
 #include <iostream>
 #include <vector>
-#include <cmath>
 #include <memory>
 #include <limits>
 #include <numbers>
+#include <cmath>
+#include <cstdlib>
 
 const float infinity = std::numeric_limits<float>::infinity();
 const float pi = std::numbers::pi_v<float>;
+
+void push_color(std::vector<uint8_t>& image_data, HMM_Vec3 pixel_color)
+{
+    image_data.push_back(static_cast<int>(255.999 * pixel_color.X));
+    image_data.push_back(static_cast<int>(255.999 * pixel_color.Y));
+    image_data.push_back(static_cast<int>(255.999 * pixel_color.Z));
+}
+
+void save_jpg(int image_width, int image_height, const std::vector<HMM_Vec3>& image_color_data, const char* filename)
+{
+    std::vector<uint8_t> image_data;
+    image_data.reserve(image_width * image_height * 3);
+
+    for (int i = 0; i < image_height * image_width; i++)
+    {
+        push_color(image_data, image_color_data[i]);
+    }
+
+    stbi_write_jpg(filename, image_width, image_height, 3, image_data.data(), 100);
+}
+
+inline float random_float()
+{
+    // Returns a random real in [0,1).
+    return (float)rand() / (RAND_MAX + 1.0f);
+}
+
+inline float random_float(float min, float max)
+{
+    // Returns a random real in [min,max).
+    return min + (max - min) * random_float();
+}
 
 class interval
 {
@@ -48,26 +81,6 @@ private:
     HMM_Vec3 orig;
     HMM_Vec3 dir;
 };
-
-void push_color(std::vector<uint8_t>& image_data, HMM_Vec3 pixel_color)
-{
-    image_data.push_back(static_cast<int>(255.999 * pixel_color.X));
-    image_data.push_back(static_cast<int>(255.999 * pixel_color.Y));
-    image_data.push_back(static_cast<int>(255.999 * pixel_color.Z));
-}
-
-void save_jpg(int image_width, int image_height, const std::vector<HMM_Vec3>& image_color_data, const char* filename)
-{
-    std::vector<uint8_t> image_data;
-    image_data.reserve(image_width * image_height * 3);
-
-    for (int i = 0; i < image_height * image_width; i++)
-    {
-        push_color(image_data, image_color_data[i]);
-    }
-
-    stbi_write_jpg(filename, image_width, image_height, 3, image_data.data(), 100);
-}
 
 struct hit_record
 {
