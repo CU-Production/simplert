@@ -7,6 +7,7 @@
 #include <memory>
 #include <limits>
 #include <numbers>
+#include <random>
 #include <cmath>
 #include <cstdlib>
 
@@ -36,7 +37,9 @@ void save_jpg(int image_width, int image_height, const std::vector<HMM_Vec3>& im
 inline float random_float()
 {
     // Returns a random real in [0,1).
-    return (float)rand() / (RAND_MAX + 1.0f);
+    static std::uniform_real_distribution<float> distribution(0.0, 1.0);
+    static std::mt19937 generator;
+    return distribution(generator);
 }
 
 inline float random_float(float min, float max)
