@@ -480,24 +480,16 @@ int main()
 
     hittable_list world;
 
-    // auto material_ground = std::make_shared<lambertian>(HMM_Vec3{0.8, 0.8, 0.0});
-    // auto material_center = std::make_shared<lambertian>(HMM_Vec3{0.1, 0.2, 0.5});
-    // auto material_left   = std::make_shared<dielectric>(1.5);
-    // auto material_right  = std::make_shared<metal>(HMM_Vec3{0.8, 0.6, 0.2}, 0.0);
-    //
-    // world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0, -100.5, -1.0}, 100.0, material_ground));
-    // world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0,    0.0, -1.0},   0.5, material_center));
-    // world.add(std::make_shared<sphere>(HMM_Vec3{-1.0,    0.0, -1.0},   0.5, material_left));
-    // world.add(std::make_shared<sphere>(HMM_Vec3{-1.0,    0.0, -1.0},  -0.4, material_left));
-    // world.add(std::make_shared<sphere>(HMM_Vec3{ 1.0,    0.0, -1.0},   0.5, material_right));
+    auto material_ground = std::make_shared<lambertian>(HMM_Vec3{0.8, 0.8, 0.0});
+    auto material_center = std::make_shared<lambertian>(HMM_Vec3{0.1, 0.2, 0.5});
+    auto material_left   = std::make_shared<dielectric>(1.5);
+    auto material_right  = std::make_shared<metal>(HMM_Vec3{0.8, 0.6, 0.2}, 0.0);
 
-    auto R = cos(pi/4);
-
-    auto material_left  = std::make_shared<lambertian>(HMM_Vec3{0,0,1});
-    auto material_right = std::make_shared<lambertian>(HMM_Vec3{1,0,0});
-
-    world.add(std::make_shared<sphere>(HMM_Vec3{-R, 0, -1}, R, material_left));
-    world.add(std::make_shared<sphere>(HMM_Vec3{ R, 0, -1}, R, material_right));
+    world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0, -100.5, -1.0}, 100.0, material_ground));
+    world.add(std::make_shared<sphere>(HMM_Vec3{ 0.0,    0.0, -1.0},   0.5, material_center));
+    world.add(std::make_shared<sphere>(HMM_Vec3{-1.0,    0.0, -1.0},   0.5, material_left));
+    world.add(std::make_shared<sphere>(HMM_Vec3{-1.0,    0.0, -1.0},  -0.4, material_left));
+    world.add(std::make_shared<sphere>(HMM_Vec3{ 1.0,    0.0, -1.0},   0.5, material_right));
 
     camera cam;
 
@@ -506,7 +498,10 @@ int main()
     cam.aspect_ratio = 16.0f / 9.0f;
     cam.max_depth    = 50;
 
-    cam.vfov = 90;
+    cam.vfov     = 90.0f;
+    cam.lookfrom = HMM_Vec3{-2,2, 1};
+    cam.lookat   = HMM_Vec3{ 0,0,-1};
+    cam.vup      = HMM_Vec3{ 0,1, 0};
 
     std::vector<HMM_Vec3> image_color_data = cam.render(world);
 
