@@ -162,6 +162,81 @@ HMM_Vec3 ray_color(const ray& r, const hittable& world)
     return HMM_Lerp(HMM_Vec3{1.0f, 1.0f, 1.0f}, a, HMM_Vec3{0.5f, 0.7f, 1.0f});
 }
 
+class camera
+{
+public:
+    float aspect_ratio = 1.0;  // Ratio of image width over height
+    int   image_width  = 100;  // Rendered image width in pixel count
+    int   image_height = 100;   // Rendered image height
+
+    std::vector<HMM_Vec3> render(const hittable& world)
+    {
+        initialize();
+
+        std::vector<HMM_Vec3> image_color_data;
+        image_color_data.resize(image_width * image_height, {0, 0, 0});
+
+        for (int j = 0; j < image_height; ++j)
+        {
+            for (int i = 0; i < image_width; ++i)
+            {
+                auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
+                auto ray_direction = pixel_center - center;
+                ray r(center, ray_direction);
+
+                HMM_Vec3 pixel_color = ray_color(r, world);
+
+                image_color_data[j * image_width + i] = pixel_color;
+            }
+        }
+
+        return image_color_data;
+    }
+
+private:
+    HMM_Vec3 center;         // Camera center
+    HMM_Vec3 pixel00_loc;    // Location of pixel 0, 0
+    HMM_Vec3 pixel_delta_u;  // Offset to pixel to the right
+    HMM_Vec3 pixel_delta_v;  // Offset to pixel below
+
+    void initialize()
+    {
+        aspect_ratio = (float)image_width / (float)image_height;
+
+        center = HMM_Vec3{0, 0, 0};
+
+        // Determine viewport dimensions.
+        float focal_length = 1.0;
+        float viewport_height = 2.0;
+        float viewport_width = viewport_height * ((float)image_width/(float)image_height);
+
+        // Calculate the vectors across the horizontal and down the vertical viewport edges.
+        auto viewport_u = HMM_Vec3{viewport_width, 0, 0};
+        auto viewport_v = HMM_Vec3{0, -viewport_height, 0};
+
+        // Calculate the horizontal and vertical delta vectors from pixel to pixel.
+        pixel_delta_u = viewport_u / (float)image_width;
+        pixel_delta_v = viewport_v / (float)image_height;
+
+        // Calculate the location of the upper left pixel.
+        HMM_Vec3 viewport_upper_left = center - HMM_Vec3{0, 0, focal_length} - viewport_u/2 - viewport_v/2;
+        pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+    }
+
+    HMM_Vec3 ray_color(const ray& r, const hittable& world) const
+    {
+        hit_record rec;
+        if (world.hit(r, interval(0, infinity), rec))
+        {
+            return 0.5 * (rec.normal + HMM_Vec3{1.0f, 1.0f, 1.0f});
+        }
+
+        HMM_Vec3 unit_direction = HMM_Norm(r.direction());
+        float a = 0.5f * (unit_direction.Y + 1.0f);
+        return HMM_Lerp(HMM_Vec3{1.0f, 1.0f, 1.0f}, a, HMM_Vec3{0.5f, 0.7f, 1.0f});
+    }
+};
+
 int main()
 {
     // Image
@@ -169,48 +244,21 @@ int main()
     const int image_height = 360;
     const float aspect_ratio = 16.0f / 9.0f;
 
+    hittable_list world;
+
+    world.add(std::make_shared<sphere>(HMM_Vec3{0,0,-1}, 0.5));
+    world.add(std::make_shared<sphere>(HMM_Vec3{0,-100.5,-1}, 100));
+
+    camera cam;
+
+    cam.image_width  = image_width;
+    cam.image_height = image_height;
+    cam.aspect_ratio = aspect_ratio;
+
+    std::vector<HMM_Vec3> image_color_data = cam.render(world);
+
     std::vector<uint8_t> image_data;
     image_data.reserve(image_width * image_height * 3);
-
-    std::vector<HMM_Vec3> image_color_data;
-    image_color_data.resize(image_width * image_height, {0, 0, 0});
-
-    // World
-    hittable_list world;
-    world.add(std::make_shared<sphere>(HMM_Vec3{0, 0, -1}, 0.5));
-    world.add(std::make_shared<sphere>(HMM_Vec3{0, -100.5, -1}, 100));
-
-    // Camera
-    float focal_length = 1.0f;
-    float viewport_height = 2.0f;
-    float viewport_width = viewport_height * (static_cast<float>(image_width)/image_height);
-    HMM_Vec3 camera_center = {0, 0, 0};
-
-    // Calculate the vectors across the horizontal and down the vertical viewport edges.
-    HMM_Vec3 viewport_u = {viewport_width, 0, 0};
-    HMM_Vec3 viewport_v = {0, -viewport_height, 0};
-
-    // Calculate the horizontal and vertical delta vectors from pixel to pixel.
-    HMM_Vec3 pixel_delta_u = viewport_u / image_width;
-    HMM_Vec3 pixel_delta_v = viewport_v / image_height;
-
-    // Calculate the location of the upper left pixel.
-    HMM_Vec3 viewport_upper_left = camera_center - HMM_Vec3{0, 0, focal_length} - viewport_u/2 - viewport_v/2;
-    HMM_Vec3 pixel00_loc = viewport_upper_left + 0.5f * (pixel_delta_u + pixel_delta_v);
-
-    for (int j = 0; j < image_height; ++j)
-    {
-        for (int i = 0; i < image_width; ++i)
-        {
-            auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
-            auto ray_direction = pixel_center - camera_center;
-            ray r(camera_center, ray_direction);
-
-            HMM_Vec3 pixel_color = ray_color(r, world);
-
-            image_color_data[j * image_width + i] = pixel_color;
-        }
-    }
 
     for (int i = 0; i < image_height * image_width; i++)
     {
