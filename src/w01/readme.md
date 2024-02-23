@@ -9,7 +9,8 @@ cam.max_depth    = 50;
 cam.samples_per_pixel = 100;
 ```
 
-| mode        | time | 
-|-------------|------|
-| single code | 237s |
+| mode               | time | 
+|--------------------|------|
+| single-thread code | 237s |
+| multi-thread code  | 21s  |
 
