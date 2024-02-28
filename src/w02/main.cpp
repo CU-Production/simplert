@@ -13,7 +13,7 @@
 #include <cmath>
 #include <cstdlib>
 
-//#define USE_PARALLEL_FOR 0
+// #define USE_PARALLEL_FOR 0
 #define USE_PARALLEL_FOR 1
 
 const float infinity = std::numeric_limits<float>::infinity();
@@ -84,6 +84,12 @@ inline float random_float(float min, float max)
 {
     // Returns a random real in [min,max).
     return min + (max - min) * random_float();
+}
+
+inline int random_int(int min, int max)
+{
+    // Returns a random integer in [min,max].
+    return static_cast<int>(random_float(min, max+1));
 }
 
 namespace Vec3
@@ -460,7 +466,36 @@ public:
     bvh_node(const hittable_list& list) : bvh_node(list.objects, 0, list.objects.size()) {}
 
     bvh_node(const std::vector<std::shared_ptr<hittable>>& src_objects, size_t start, size_t end)
-    {}
+    {
+        auto objects = src_objects; // Create a modifiable array of the source scene objects
+
+        int axis = random_int(0, 2);
+        auto comparator = (axis == 0) ? box_x_compare
+                        : (axis == 1) ? box_y_compare
+                                      : box_z_compare;
+
+        size_t object_span = end - start;
+
+        if (object_span == 1) {
+            left = right = objects[start];
+        } else if (object_span == 2) {
+            if (comparator(objects[start], objects[start+1])) {
+                left = objects[start];
+                right = objects[start+1];
+            } else {
+                left = objects[start+1];
+                right = objects[start];
+            }
+        } else {
+            std::sort(objects.begin() + start, objects.begin() + end, comparator);
+
+            auto mid = start + object_span/2;
+            left = std::make_shared<bvh_node>(objects, start, mid);
+            right = std::make_shared<bvh_node>(objects, mid, end);
+        }
+
+        bbox = aabb(left->bounding_box(), right->bounding_box());
+    }
 
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override
     {
@@ -479,6 +514,22 @@ private:
     std::shared_ptr<hittable> left;
     std::shared_ptr<hittable> right;
     aabb bbox;
+
+    static bool box_compare(const std::shared_ptr<hittable> a, const std::shared_ptr<hittable> b, int axis_index) {
+        return a->bounding_box().axis(axis_index).min < b->bounding_box().axis(axis_index).min;
+    }
+
+    static bool box_x_compare (const std::shared_ptr<hittable> a, const std::shared_ptr<hittable> b) {
+        return box_compare(a, b, 0);
+    }
+
+    static bool box_y_compare (const std::shared_ptr<hittable> a, const std::shared_ptr<hittable> b) {
+        return box_compare(a, b, 1);
+    }
+
+    static bool box_z_compare (const std::shared_ptr<hittable> a, const std::shared_ptr<hittable> b) {
+        return box_compare(a, b, 2);
+    }
 };
 
 class camera
@@ -667,8 +718,9 @@ int main()
                     // diffuse
                     auto albedo = Vec3::random_vec3() * Vec3::random_vec3();
                     sphere_material = std::make_shared<lambertian>(albedo);
-                    auto center2 = center + HMM_V3(0, random_float(0,.5), 0);
-                    world.add(std::make_shared<sphere>(center, center2, 0.2, sphere_material));
+                    // auto center2 = center + HMM_V3(0, random_float(0,.5), 0);
+                    // world.add(std::make_shared<sphere>(center, center2, 0.2, sphere_material));
+                    world.add(std::make_shared<sphere>(center, 0.2, sphere_material));
                 } else if (choose_mat < 0.95) {
                     // metal
                     auto albedo = Vec3::random_vec3(0.5, 1);
@@ -693,13 +745,15 @@ int main()
     auto material3 = std::make_shared<metal>(HMM_Vec3{0.7, 0.6, 0.5}, 0.0);
     world.add(std::make_shared<sphere>(HMM_Vec3{4, 1, 0}, 1.0, material3));
 
+    world = hittable_list(std::make_shared<bvh_node>(world));
+
     camera cam;
 
     cam.image_width  = 640;
     cam.image_height = 360;
     cam.aspect_ratio = 16.0f / 9.0f;
     cam.max_depth    = 50;
-    cam.samples_per_pixel = 50;
+    cam.samples_per_pixel = 500;
 
     cam.vfov     = 20.0f;
     cam.lookfrom = HMM_Vec3{13,2,3};
