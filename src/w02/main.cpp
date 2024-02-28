@@ -41,6 +41,11 @@ public:
         return x;
     }
 
+    interval expand(float delta) const {
+        auto padding = delta/2.0f;
+        return interval(min - padding, max + padding);
+    }
+
     static const interval empty, universe;
 };
 const static interval empty   (+infinity, -infinity);
@@ -223,7 +228,7 @@ private:
 class metal : public material
 {
 public:
-    metal(const HMM_Vec3 & a, float f) : albedo(a), fuzz(f < 1 ? f : 1.0f) {}
+    metal(const HMM_Vec3& a, float f) : albedo(a), fuzz(f < 1 ? f : 1.0f) {}
 
     bool scatter(const ray& r_in, const hit_record& rec, HMM_Vec3& attenuation, ray& scattered) const override
     {
@@ -273,6 +278,48 @@ private:
         auto r0 = (1-ref_idx) / (1+ref_idx);
         r0 = r0*r0;
         return r0 + (1-r0)*std::powf((1 - cosine), 5);
+    }
+};
+
+class aabb
+{
+public:
+    interval x, y, z;
+
+    aabb() {} // The default AABB is empty, since intervals are empty by default.
+
+    aabb(const interval& ix, const interval& iy, const interval& iz) : x(ix), y(iy), z(iz) {}
+
+    aabb(const HMM_Vec3& a, const HMM_Vec3& b)
+    {
+        // Treat the two points a and b as extrema for the bounding box, so we don't require a
+        // particular minimum/maximum coordinate order.
+        x = interval(std::fmin(a[0],b[0]), std::fmax(a[0],b[0]));
+        y = interval(std::fmin(a[1],b[1]), std::fmax(a[1],b[1]));
+        z = interval(std::fmin(a[2],b[2]), std::fmax(a[2],b[2]));
+    }
+
+    const interval& axis(int n) const
+    {
+        if (n == 1) return y;
+        if (n == 2) return z;
+        return x;
+    }
+
+    bool hit(const ray& r, interval ray_t) const
+    {
+        for (int a = 0; a < 3; a++)
+        {
+            auto t0 = fmin((axis(a).min - r.origin()[a]) / r.direction()[a],
+                           (axis(a).max - r.origin()[a]) / r.direction()[a]);
+            auto t1 = fmax((axis(a).min - r.origin()[a]) / r.direction()[a],
+                           (axis(a).max - r.origin()[a]) / r.direction()[a]);
+            ray_t.min = fmax(t0, ray_t.min);
+            ray_t.max = fmin(t1, ray_t.max);
+            if (ray_t.max <= ray_t.min)
+                return false;
+        }
+        return true;
     }
 };
 
