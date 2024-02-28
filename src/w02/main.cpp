@@ -26,6 +26,7 @@ public:
 
     interval() : min(+infinity), max(-infinity) {} // Default interval is empty
     interval(float _min, float _max) : min(_min), max(_max) {}
+    interval(const interval& a, const interval& b) : min(fmin(a.min, b.min)), max(fmax(a.max, b.max)) {}
 
     bool contains(float x) const {
         return min <= x && x <= max;
@@ -299,6 +300,13 @@ public:
         z = interval(std::fmin(a[2],b[2]), std::fmax(a[2],b[2]));
     }
 
+    aabb(const aabb& box0, const aabb& box1)
+    {
+        x = interval(box0.x, box1.x);
+        y = interval(box0.y, box1.y);
+        z = interval(box0.z, box1.z);
+    }
+
     const interval& axis(int n) const
     {
         if (n == 1) return y;
@@ -334,19 +342,31 @@ class hittable
 public:
     virtual ~hittable() = default;
     virtual bool hit(const ray& r, interval ray_t, hit_record& rec) const = 0;
+    virtual aabb bounding_box() const = 0;
 };
 
 class sphere : public hittable
 {
 public:
     // Stationary Sphere
-    sphere(HMM_Vec3 _center, float _radius, std::shared_ptr<material> _material) : center1(_center), radius(_radius), mat(_material), is_moving(false) {}
+    sphere(HMM_Vec3 _center, float _radius, std::shared_ptr<material> _material) : center1(_center), radius(_radius), mat(_material), is_moving(false)
+    {
+        auto rvec = HMM_V3(radius, radius, radius);
+        bbox = aabb(center1 - rvec, center1 + rvec);
+    }
 
     // Moving Sphere
     sphere(HMM_Vec3 _center1, HMM_Vec3 _center2, float _radius, std::shared_ptr<material> _material) : center1(_center1), radius(_radius), mat(_material), is_moving(true)
     {
         center_vec = _center2 - _center1;
+
+        auto rvec = HMM_V3(radius, radius, radius);
+        aabb box1(_center1 - rvec, _center1 + rvec);
+        aabb box2(_center2 - rvec, _center1 + rvec);
+        bbox = aabb(box1, box2);
     }
+
+    aabb bounding_box() const override { return bbox; }
 
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override
     {
@@ -384,6 +404,7 @@ private:
     std::shared_ptr<material> mat;
     bool is_moving;
     HMM_Vec3 center_vec;
+    aabb bbox;
 
     HMM_Vec3 sphere_center(float time) const
     {
@@ -402,7 +423,11 @@ public:
     hittable_list(std::shared_ptr<hittable> object) { add(object); }
 
     void clear() { objects.clear(); }
-    void add(std::shared_ptr<hittable> object) { objects.push_back(object); }
+    void add(std::shared_ptr<hittable> object)
+    {
+        objects.push_back(object);
+        bbox = aabb(bbox, object->bounding_box());
+    }
 
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override
     {
@@ -422,6 +447,11 @@ public:
 
         return hit_anything;
     }
+
+    aabb bounding_box() const override { return bbox; }
+
+private:
+    aabb bbox;
 };
 
 class camera
