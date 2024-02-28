@@ -156,16 +156,19 @@ class ray
 {
 public:
     ray() {}
-    ray(const HMM_Vec3& origin, const HMM_Vec3& direction) : orig(origin), dir(direction) {}
+    ray(const HMM_Vec3& origin, const HMM_Vec3& direction) : orig(origin), dir(direction), tm(0) {}
+    ray(const HMM_Vec3& origin, const HMM_Vec3& direction, float time) : orig(origin), dir(direction), tm(time) {}
 
     HMM_Vec3 origin() const  { return orig; }
     HMM_Vec3 direction() const { return dir; }
+    float time() const { return tm; }
 
     HMM_Vec3 at(float t) const { return t*dir + orig; }
 
 private:
     HMM_Vec3 orig;
     HMM_Vec3 dir;
+    float tm;
 };
 
 class material;
@@ -208,7 +211,7 @@ public:
         if (Vec3::vec3_near_zero(scatter_direction))
             scatter_direction = rec.normal;
 
-        scattered = ray(rec.p, scatter_direction);
+        scattered = ray(rec.p, scatter_direction, r_in.time());
         attenuation = albedo;
         return true;
     }
@@ -225,7 +228,7 @@ public:
     bool scatter(const ray& r_in, const hit_record& rec, HMM_Vec3& attenuation, ray& scattered) const override
     {
         HMM_Vec3 reflected = Vec3::reflect(HMM_Norm(r_in.direction()), rec.normal);
-        scattered = ray(rec.p, reflected + fuzz*Vec3::random_unit_vector());
+        scattered = ray(rec.p, reflected + fuzz*Vec3::random_unit_vector(), r_in.time());
         attenuation = albedo;
         return (HMM_Dot(scattered.direction(), rec.normal) > 0);;
     }
@@ -257,7 +260,7 @@ public:
         else
             direction = Vec3::refract(unit_direction, rec.normal, refraction_ratio);
 
-        scattered = ray(rec.p, direction);
+        scattered = ray(rec.p, direction, r_in.time());
         return true;
     }
 
@@ -283,10 +286,18 @@ public:
 class sphere : public hittable
 {
 public:
-    sphere(HMM_Vec3 _center, float _radius, std::shared_ptr<material> _material) : center(_center), radius(_radius), mat(_material) {}
+    // Stationary Sphere
+    sphere(HMM_Vec3 _center, float _radius, std::shared_ptr<material> _material) : center1(_center), radius(_radius), mat(_material), is_moving(false) {}
+
+    // Moving Sphere
+    sphere(HMM_Vec3 _center1, HMM_Vec3 _center2, float _radius, std::shared_ptr<material> _material) : center1(_center1), radius(_radius), mat(_material), is_moving(true)
+    {
+        center_vec = _center2 - _center1;
+    }
 
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override
     {
+        HMM_Vec3 center = is_moving ? sphere_center(r.time()) : center1;
         HMM_Vec3 oc = r.origin() - center;
         auto a = HMM_LenSqr(r.direction());
         auto half_b = HMM_Dot(oc, r.direction());
@@ -307,7 +318,7 @@ public:
 
         rec.t = root;
         rec.p = r.at(rec.t);
-        HMM_Vec3 outward_normal = (rec.p - center) / radius;
+        HMM_Vec3 outward_normal = (rec.p - center1) / radius;
         rec.set_face_normal(r, outward_normal);
         rec.mat = mat;
 
@@ -315,9 +326,18 @@ public:
     }
 
 private:
-    HMM_Vec3 center;
+    HMM_Vec3 center1;
     float radius;
     std::shared_ptr<material> mat;
+    bool is_moving;
+    HMM_Vec3 center_vec;
+
+    HMM_Vec3 sphere_center(float time) const
+    {
+        // Linearly interpolate from center1 to center2 according to time, where t=0 yields
+        // center1, and t=1 yields center2.
+        return center1 + time*center_vec;
+    }
 };
 
 class hittable_list : public hittable
@@ -474,8 +494,9 @@ private:
 
         auto ray_origin = (defocus_angle <= 0) ? center : defocus_disk_sample();
         auto ray_direction = pixel_sample - ray_origin;
+        auto ray_time = random_float();
 
-        return ray(ray_origin, ray_direction);
+        return ray(ray_origin, ray_direction, ray_time);
     }
 
     HMM_Vec3 pixel_sample_square() const
@@ -536,17 +557,18 @@ int main()
                     // diffuse
                     auto albedo = Vec3::random_vec3() * Vec3::random_vec3();
                     sphere_material = std::make_shared<lambertian>(albedo);
-                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
+                    auto center2 = center + HMM_V3(0, random_float(0,.5), 0);
+                    world.add(std::make_shared<sphere>(center, center2, 0.2, sphere_material));
                 } else if (choose_mat < 0.95) {
                     // metal
                     auto albedo = Vec3::random_vec3(0.5, 1);
                     auto fuzz = random_float(0, 0.5);
                     sphere_material = std::make_shared<metal>(albedo, fuzz);
-                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
+                    world.add(std::make_shared<sphere>(center, 0.2, sphere_material));
                 } else {
                     // glass
                     sphere_material = std::make_shared<dielectric>(1.5);
-                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
+                    world.add(std::make_shared<sphere>(center, 0.2, sphere_material));
                 }
             }
         }
