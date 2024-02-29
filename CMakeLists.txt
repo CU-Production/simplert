@@ -6,4 +6,4 @@ set(CMAKE_CXX_STANDARD 20)
 add_subdirectory(3rd_party)
 
 add_subdirectory(src/w01)
-add_subdirectory(src/w02)
+add_subdirectory(src/w01bvh)
