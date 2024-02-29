@@ -7,3 +7,4 @@ add_subdirectory(3rd_party)
 
 add_subdirectory(src/w01)
 add_subdirectory(src/w01bvh)
+add_subdirectory(src/w02)
