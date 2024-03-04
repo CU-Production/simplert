@@ -88,11 +88,42 @@ void random_spheres()
     save_jpg(cam.image_width, cam.image_height, image_color_data, "random_spheres.jpg");
 }
 
+void two_spheres()
+{
+    hittable_list world;
+
+    auto checker = std::make_shared<checker_texture>(0.8, HMM_V3(.2, .3, .1), HMM_V3(.9, .9, .9));
+
+    world.add(std::make_shared<sphere>(HMM_V3(0,-10, 0), 10, std::make_shared<lambertian>(checker)));
+    world.add(std::make_shared<sphere>(HMM_V3(0, 10, 0), 10, std::make_shared<lambertian>(checker)));
+
+    camera cam;
+
+    cam.image_width  = 640;
+    cam.image_height = 360;
+    cam.aspect_ratio = 16.0f / 9.0f;
+    cam.max_depth    = 50;
+
+    cam.vfov     = 20;
+    cam.lookfrom = HMM_V3(13,2,3);
+    cam.lookat   = HMM_V3(0,0,0);
+    cam.vup      = HMM_V3(0,1,0);
+
+    cam.defocus_angle = 0;
+
+    std::vector<HMM_Vec3> image_color_data = cam.render(world);
+
+    save_jpg(cam.image_width, cam.image_height, image_color_data, "two_spheres.jpg");
+}
+
 int main()
 {
     auto timeStart = std::chrono::high_resolution_clock::now();
 
-    random_spheres();
+    switch (2) {
+        case 1: random_spheres(); break;
+        case 2: two_spheres();    break;
+    }
 
     auto timeEnd = std::chrono::high_resolution_clock::now();
 
