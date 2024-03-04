@@ -8,6 +8,7 @@
 #include "material.h"
 #include "camera.h"
 #include "aabb.h"
+#include "texture.h"
 
 #include <iostream>
 #include <chrono>
@@ -15,14 +16,15 @@
 #include <cmath>
 #include <cstdlib>
 
-int main()
+void random_spheres()
 {
-    auto timeStart = std::chrono::high_resolution_clock::now();
-
     hittable_list world;
 
-    auto ground_material = std::make_shared<lambertian>(HMM_Vec3{0.5, 0.5, 0.5});
-    world.add(std::make_shared<sphere>(HMM_Vec3{0,-1000,0}, 1000, ground_material));
+//    auto ground_material = std::make_shared<lambertian>(HMM_Vec3{0.5, 0.5, 0.5});
+//    world.add(std::make_shared<sphere>(HMM_Vec3{0,-1000,0}, 1000, ground_material));
+
+    auto checker = std::make_shared<checker_texture>(0.32, HMM_V3(.2, .3, .1), HMM_V3(.9, .9, .9));
+    world.add(make_shared<sphere>(HMM_V3(0,-1000,0), 1000, std::make_shared<lambertian>(checker)));
 
     for (int a = -11; a < 11; a++) {
         for (int b = -11; b < 11; b++) {
@@ -83,7 +85,14 @@ int main()
 
     std::vector<HMM_Vec3> image_color_data = cam.render(world);
 
-    save_jpg(cam.image_width, cam.image_height, image_color_data, "output.jpg");
+    save_jpg(cam.image_width, cam.image_height, image_color_data, "random_spheres.jpg");
+}
+
+int main()
+{
+    auto timeStart = std::chrono::high_resolution_clock::now();
+
+    random_spheres();
 
     auto timeEnd = std::chrono::high_resolution_clock::now();
 
