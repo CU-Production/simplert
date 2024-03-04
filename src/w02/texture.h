@@ -83,14 +83,16 @@ class noise_texture : public texture
 {
 public:
     noise_texture() {}
+    noise_texture(float sc) : scale(sc) {}
 
     HMM_Vec3 value(float u, float v, const HMM_Vec3& p) const override
     {
-        return HMM_V3(1,1,1) * noise.noise(p);
+        return HMM_V3(1,1,1) * noise.noise(scale*p);
     }
 
 private:
     perlin noise;
+    float scale;
 };
 
 #endif //SIMPLERT_TEXTURE_H
