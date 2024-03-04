@@ -140,14 +140,41 @@ void earth()
     save_jpg(cam.image_width, cam.image_height, image_color_data, "earth.jpg");
 }
 
+void two_perlin_spheres()
+{
+    hittable_list world;
+
+    auto pertext = std::make_shared<noise_texture>();
+    world.add(std::make_shared<sphere>(HMM_V3(0,-1000,0), 1000, std::make_shared<lambertian>(pertext)));
+    world.add(std::make_shared<sphere>(HMM_V3(0,2,0), 2, std::make_shared<lambertian>(pertext)));
+
+    camera cam;
+
+    cam.image_width  = 640;
+    cam.image_height = 360;
+    cam.aspect_ratio = 16.0f / 9.0f;
+    cam.max_depth    = 50;
+
+    cam.vfov     = 20;
+    cam.lookfrom = HMM_V3(13,2,3);
+    cam.lookat   = HMM_V3(0,0,0);
+    cam.vup      = HMM_V3(0,1,0);
+
+    cam.defocus_angle = 0;
+
+    std::vector<HMM_Vec3> image_color_data = cam.render(world);
+    save_jpg(cam.image_width, cam.image_height, image_color_data, "two_perlin_spheres.jpg");
+}
+
 int main()
 {
     auto timeStart = std::chrono::high_resolution_clock::now();
 
-    switch (3) {
-        case 1: random_spheres(); break;
-        case 2: two_spheres();    break;
-        case 3: earth();          break;
+    switch (4) {
+        case 1: random_spheres();      break;
+        case 2: two_spheres();         break;
+        case 3: earth();               break;
+        case 4:  two_perlin_spheres(); break;
     }
 
     auto timeEnd = std::chrono::high_resolution_clock::now();

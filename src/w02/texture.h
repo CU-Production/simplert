@@ -3,6 +3,7 @@
 
 #include "misc.h"
 #include "rtw_image.h"
+#include "perlin.h"
 
 class texture
 {
@@ -76,6 +77,20 @@ public:
 
 private:
     rtw_image image;
+};
+
+class noise_texture : public texture
+{
+public:
+    noise_texture() {}
+
+    HMM_Vec3 value(float u, float v, const HMM_Vec3& p) const override
+    {
+        return HMM_V3(1,1,1) * noise.noise(p);
+    }
+
+private:
+    perlin noise;
 };
 
 #endif //SIMPLERT_TEXTURE_H
