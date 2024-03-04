@@ -28,6 +28,9 @@ public:
         auto u = p.X - std::floorf(p.X);
         auto v = p.Y - std::floorf(p.Y);
         auto w = p.Z - std::floorf(p.Z);
+        u = u*u*(3-2*u);
+        v = v*v*(3-2*v);
+        w = w*w*(3-2*w);
 
         auto i = static_cast<int>(std::floorf(p.X));
         auto j = static_cast<int>(std::floorf(p.Y));
