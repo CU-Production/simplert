@@ -2,6 +2,7 @@
 #define SIMPLERT_TEXTURE_H
 
 #include "misc.h"
+#include "rtw_image.h"
 
 class texture
 {
@@ -49,6 +50,32 @@ private:
     float inv_scale;
     std::shared_ptr<texture> even;
     std::shared_ptr<texture> odd;
+};
+
+class image_texture : public texture
+{
+public:
+    image_texture(const char* filename) : image(filename) {}
+
+    HMM_Vec3 value(float u, float v, const HMM_Vec3& p) const override
+    {
+        // If we have no texture data, then return solid cyan as a debugging aid.
+        if (image.height() <= 0) return HMM_V3(0,1,1);
+
+        // Clamp input texture coordinates to [0,1] x [1,0]
+        u = interval(0, 1).clamp(u);
+        v = 1.0 - interval(0, 1).clamp(v); // Flip V to image coordinates
+
+        auto i = static_cast<int>(u * image.width());
+        auto j = static_cast<int>(v * image.height());
+        auto pixel = image.pixel_data(i, j);
+
+        auto color_scale = 1.0f / 255.0f;
+        return HMM_V3(color_scale*pixel[0], color_scale*pixel[1], color_scale*pixel[2]);
+    }
+
+private:
+    rtw_image image;
 };
 
 #endif //SIMPLERT_TEXTURE_H

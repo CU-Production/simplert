@@ -116,13 +116,38 @@ void two_spheres()
     save_jpg(cam.image_width, cam.image_height, image_color_data, "two_spheres.jpg");
 }
 
+void earth()
+{
+    auto earth_texture = std::make_shared<image_texture>("earthmap.jpg");
+    auto earth_surface = std::make_shared<lambertian>(earth_texture);
+    auto globe = make_shared<sphere>(HMM_V3(0,0,0), 2, earth_surface);
+
+    camera cam;
+
+    cam.image_width  = 640;
+    cam.image_height = 360;
+    cam.aspect_ratio = 16.0f / 9.0f;
+    cam.max_depth    = 50;
+
+    cam.vfov     = 20;
+    cam.lookfrom = HMM_V3(0,0,12);
+    cam.lookat   = HMM_V3(0,0,0);
+    cam.vup      = HMM_V3(0,1,0);
+
+    cam.defocus_angle = 0;
+
+    std::vector<HMM_Vec3> image_color_data = cam.render(hittable_list(globe));
+    save_jpg(cam.image_width, cam.image_height, image_color_data, "earth.jpg");
+}
+
 int main()
 {
     auto timeStart = std::chrono::high_resolution_clock::now();
 
-    switch (2) {
+    switch (3) {
         case 1: random_spheres(); break;
         case 2: two_spheres();    break;
+        case 3: earth();          break;
     }
 
     auto timeEnd = std::chrono::high_resolution_clock::now();
