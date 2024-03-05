@@ -248,8 +248,15 @@ void cornell_box() {
     world.add(make_shared<quad>(HMM_V3(555,555,555), HMM_V3(-555,0,0), HMM_V3(0,0,-555), white));
     world.add(make_shared<quad>(HMM_V3(0,0,555), HMM_V3(555,0,0), HMM_V3(0,555,0), white));
 
-    world.add(box(HMM_V3(130, 0, 65), HMM_V3(295, 165, 230), white));
-    world.add(box(HMM_V3(265, 0, 295), HMM_V3(430, 330, 460), white));
+    std::shared_ptr<hittable> box1 = box(HMM_V3(0,0,0), HMM_V3(165,330,165), white);
+    box1 = make_shared<rotate_y>(box1, 15);
+    box1 = make_shared<translate>(box1, HMM_V3(265,0,295));
+    world.add(box1);
+
+    std::shared_ptr<hittable> box2 = box(HMM_V3(0,0,0), HMM_V3(165,165,165), white);
+    box2 = make_shared<rotate_y>(box2, -18);
+    box2 = make_shared<translate>(box2, HMM_V3(130,0,65));
+    world.add(box2);
 
     camera cam;
 

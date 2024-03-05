@@ -342,4 +342,79 @@ private:
     aabb bbox;
 };
 
+class rotate_y : public hittable {
+public:
+    rotate_y(std::shared_ptr<hittable> p, float angle) : object(p)
+    {
+        auto radians = HMM_DegToRad * angle;
+        sin_theta = std::sinf(radians);
+        cos_theta = std::cosf(radians);
+        bbox = object->bounding_box();
+
+        HMM_Vec3 min = HMM_V3( infinity,  infinity,  infinity);
+        HMM_Vec3 max = HMM_V3(-infinity, -infinity, -infinity);
+
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 2; j++) {
+                for (int k = 0; k < 2; k++) {
+                    auto x = i*bbox.x.max + (1-i)*bbox.x.min;
+                    auto y = j*bbox.y.max + (1-j)*bbox.y.min;
+                    auto z = k*bbox.z.max + (1-k)*bbox.z.min;
+
+                    auto newx =  cos_theta*x + sin_theta*z;
+                    auto newz = -sin_theta*x + cos_theta*z;
+
+                    HMM_Vec3 tester = HMM_V3(newx, y, newz);
+
+                    for (int c = 0; c < 3; c++) {
+                        min[c] = fmin(min[c], tester[c]);
+                        max[c] = fmax(max[c], tester[c]);
+                    }
+                }
+            }
+        }
+
+        bbox = aabb(min, max);
+    }
+
+    bool hit(const ray &r, interval ray_t, hit_record &rec) const override {
+        // Change the ray from world space to object space
+        auto origin = r.origin();
+        auto direction = r.direction();
+
+        origin[0] = cos_theta * r.origin()[0] - sin_theta * r.origin()[2];
+        origin[2] = sin_theta * r.origin()[0] + cos_theta * r.origin()[2];
+
+        direction[0] = cos_theta * r.direction()[0] - sin_theta * r.direction()[2];
+        direction[2] = sin_theta * r.direction()[0] + cos_theta * r.direction()[2];
+
+        ray rotated_r(origin, direction, r.time());
+
+        // Determine where (if any) an intersection occurs in object space
+        if (!object->hit(rotated_r, ray_t, rec))
+            return false;
+
+        // Change the intersection point from object space to world space
+        auto p = rec.p;
+        p[0] = cos_theta * rec.p[0] + sin_theta * rec.p[2];
+        p[2] = -sin_theta * rec.p[0] + cos_theta * rec.p[2];
+
+        // Change the normal from object space to world space
+        auto normal = rec.normal;
+        normal[0] = cos_theta * rec.normal[0] + sin_theta * rec.normal[2];
+        normal[2] = -sin_theta * rec.normal[0] + cos_theta * rec.normal[2];
+
+        rec.p = p;
+        rec.normal = normal;
+    };
+
+    aabb bounding_box() const override { return bbox; }
+
+private:
+    std::shared_ptr<hittable> object;
+    float sin_theta;
+    float cos_theta;
+    aabb bbox;
+};
+
 #endif //SIMPLERT_HITTABLE_H
