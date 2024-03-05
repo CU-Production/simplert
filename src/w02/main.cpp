@@ -294,11 +294,11 @@ void cornell_smoke() {
     world.add(std::make_shared<quad>(HMM_V3(0,0,555), HMM_V3(555,0,0), HMM_V3(0,555,0), white));
 
     std::shared_ptr<hittable> box1 = box(HMM_V3(0,0,0), HMM_V3(165,330,165), white);
-    //box1 = std::make_shared<rotate_y>(box1, 15);
+    box1 = std::make_shared<rotate_y>(box1, 15);
     box1 = std::make_shared<translate>(box1, HMM_V3(265,0,295));
 
     std::shared_ptr<hittable> box2 = box(HMM_V3(0,0,0), HMM_V3(165,165,165), white);
-    //box2 = std::make_shared<rotate_y>(box2, -18);
+    box2 = std::make_shared<rotate_y>(box2, -18);
     box2 = std::make_shared<translate>(box2, HMM_V3(130,0,65));
 
     world.add(std::make_shared<constant_medium>(box1, 0.01, HMM_V3(0,0,0)));

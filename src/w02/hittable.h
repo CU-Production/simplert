@@ -406,6 +406,8 @@ public:
 
         rec.p = p;
         rec.normal = normal;
+
+        return true;
     };
 
     aabb bounding_box() const override { return bbox; }
