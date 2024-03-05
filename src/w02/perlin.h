@@ -7,9 +7,9 @@ class perlin
 {
 public:
     perlin() {
-        ranfloat = new float[point_count];
+        ranvec  = new HMM_Vec3 [point_count];
         for (int i = 0; i < point_count; i++) {
-            ranfloat[i] = random_float();
+            ranvec[i] = HMM_Norm(Vec3::random_vec3(-1,1));
         }
 
         perm_x = perlin_generate_perm();
@@ -18,7 +18,7 @@ public:
     }
 
     ~perlin() {
-        delete[] ranfloat;
+        delete[] ranvec;
         delete[] perm_x;
         delete[] perm_y;
         delete[] perm_z;
@@ -35,12 +35,12 @@ public:
         auto i = static_cast<int>(std::floorf(p.X));
         auto j = static_cast<int>(std::floorf(p.Y));
         auto k = static_cast<int>(std::floorf(p.Z));
-        float c[2][2][2];
+        HMM_Vec3 c[2][2][2];
 
         for (int di=0; di < 2; di++)
             for (int dj=0; dj < 2; dj++)
                 for (int dk=0; dk < 2; dk++)
-                    c[di][dj][dk] = ranfloat[
+                    c[di][dj][dk] = ranvec[
                             perm_x[(i+di) & 255] ^
                             perm_y[(j+dj) & 255] ^
                             perm_z[(k+dk) & 255]
@@ -51,7 +51,7 @@ public:
 
 private:
     static const int point_count = 256;
-    float* ranfloat;
+    HMM_Vec3* ranvec;;
     int* perm_x;
     int* perm_y;
     int* perm_z;
@@ -76,15 +76,20 @@ private:
         }
     }
 
-    static float trilinear_interp(float c[2][2][2], float u, float v, float w) {
+    static float trilinear_interp(HMM_Vec3 c[2][2][2], float u, float v, float w) {
+        auto uu = u*u*(3-2*u);
+        auto vv = v*v*(3-2*v);
+        auto ww = w*w*(3-2*w);
         float accum = 0.0f;
         for (int i=0; i < 2; i++)
             for (int j=0; j < 2; j++)
-                for (int k=0; k < 2; k++)
-                    accum += (i*u + (1-i)*(1-u))*
-                             (j*v + (1-j)*(1-v))*
-                             (k*w + (1-k)*(1-w))*c[i][j][k];
-
+                for (int k=0; k < 2; k++) {
+                    HMM_Vec3 weight_v{u-i, v-j, w-k};
+                    accum += (i*uu + (1-i)*(1-uu))
+                             * (j*vv + (1-j)*(1-vv))
+                             * (k*ww + (1-k)*(1-ww))
+                             * HMM_Dot(c[i][j][k], weight_v);
+                }
         return accum;
     }
 };
