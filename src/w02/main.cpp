@@ -248,6 +248,9 @@ void cornell_box() {
     world.add(make_shared<quad>(HMM_V3(555,555,555), HMM_V3(-555,0,0), HMM_V3(0,0,-555), white));
     world.add(make_shared<quad>(HMM_V3(0,0,555), HMM_V3(555,0,0), HMM_V3(0,555,0), white));
 
+    world.add(box(HMM_V3(130, 0, 65), HMM_V3(295, 165, 230), white));
+    world.add(box(HMM_V3(265, 0, 295), HMM_V3(430, 330, 460), white));
+
     camera cam;
 
     cam.image_width       = 256;

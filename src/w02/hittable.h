@@ -287,4 +287,28 @@ private:
     }
 };
 
+inline std::shared_ptr<hittable_list> box(const HMM_Vec3& a, const HMM_Vec3& b, std::shared_ptr<material> mat)
+{
+    // Returns the 3D box (six sides) that contains the two opposite vertices a & b.
+
+    auto sides = std::make_shared<hittable_list>();
+
+    // Construct the two opposite vertices with the minimum and maximum coordinates.
+    auto min = HMM_V3(std::fminf(a.X, b.X), std::fminf(a.Y, b.Y), std::fminf(a.Z, b.Z));
+    auto max = HMM_V3(std::fmaxf(a.X, b.X), std::fmaxf(a.Y, b.Y), std::fmaxf(a.Z, b.Z));
+
+    auto dx = HMM_V3(max.X - min.X, 0, 0);
+    auto dy = HMM_V3(0, max.Y - min.Y, 0);
+    auto dz = HMM_V3(0, 0, max.Z - min.Z);
+
+    sides->add(make_shared<quad>(HMM_V3(min.X, min.Y, max.Z),  dx,  dy, mat)); // front
+    sides->add(make_shared<quad>(HMM_V3(max.X, min.Y, max.Z), -dz,  dy, mat)); // right
+    sides->add(make_shared<quad>(HMM_V3(max.X, min.Y, min.Z), -dx,  dy, mat)); // back
+    sides->add(make_shared<quad>(HMM_V3(min.X, min.Y, min.Z),  dz,  dy, mat)); // left
+    sides->add(make_shared<quad>(HMM_V3(min.X, max.Y, max.Z),  dx, -dz, mat)); // top
+    sides->add(make_shared<quad>(HMM_V3(min.X, min.Y, min.Z),  dx,  dz, mat)); // bottom
+
+    return sides;
+}
+
 #endif //SIMPLERT_HITTABLE_H
