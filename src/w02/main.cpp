@@ -233,17 +233,53 @@ void simple_light() {
     save_jpg(cam.image_width, cam.image_height, image_color_data, "simple_light.jpg");
 }
 
+void cornell_box() {
+    hittable_list world;
+
+    auto red   = std::make_shared<lambertian>(HMM_V3(.65, .05, .05));
+    auto white = std::make_shared<lambertian>(HMM_V3(.73, .73, .73));
+    auto green = std::make_shared<lambertian>(HMM_V3(.12, .45, .15));
+    auto light = std::make_shared<diffuse_light>(HMM_V3(15, 15, 15));
+
+    world.add(make_shared<quad>(HMM_V3(555,0,0), HMM_V3(0,555,0), HMM_V3(0,0,555), green));
+    world.add(make_shared<quad>(HMM_V3(0,0,0), HMM_V3(0,555,0), HMM_V3(0,0,555), red));
+    world.add(make_shared<quad>(HMM_V3(343, 554, 332), HMM_V3(-130,0,0), HMM_V3(0,0,-105), light));
+    world.add(make_shared<quad>(HMM_V3(0,0,0), HMM_V3(555,0,0), HMM_V3(0,0,555), white));
+    world.add(make_shared<quad>(HMM_V3(555,555,555), HMM_V3(-555,0,0), HMM_V3(0,0,-555), white));
+    world.add(make_shared<quad>(HMM_V3(0,0,555), HMM_V3(555,0,0), HMM_V3(0,555,0), white));
+
+    camera cam;
+
+    cam.image_width       = 256;
+    cam.image_height      = 256;
+    cam.aspect_ratio      = 1.0f;
+    cam.samples_per_pixel = 200;
+    cam.max_depth         = 50;
+    cam.background        = HMM_V3(0,0,0);
+
+    cam.vfov     = 40;
+    cam.lookfrom = HMM_V3(278, 278, -800);
+    cam.lookat   = HMM_V3(278, 278, 0);
+    cam.vup      = HMM_V3(0,1,0);
+
+    cam.defocus_angle = 0;
+
+    std::vector<HMM_Vec3> image_color_data = cam.render(world);
+    save_jpg(cam.image_width, cam.image_height, image_color_data, "cornell_box.jpg");
+}
+
 int main()
 {
     auto timeStart = std::chrono::high_resolution_clock::now();
 
-    switch (6) {
+    switch (7) {
         case 1: random_spheres();      break;
         case 2: two_spheres();         break;
         case 3: earth();               break;
         case 4: two_perlin_spheres();  break;
         case 5: quads();               break;
         case 6: simple_light();        break;
+        case 7: cornell_box();         break;
     }
 
     auto timeEnd = std::chrono::high_resolution_clock::now();
