@@ -15,11 +15,12 @@
 class camera
 {
 public:
-    float aspect_ratio      = 1.0f;  // Ratio of image width over height
-    int   image_width       = 100;   // Rendered image width in pixel count
-    int   image_height      = 100;   // Rendered image height
-    int   samples_per_pixel = 10;    // Count of random samples for each pixel
-    int   max_depth         = 10;    // Maximum number of ray bounces into scene
+    float    aspect_ratio      = 1.0f;  // Ratio of image width over height
+    int      image_width       = 100;   // Rendered image width in pixel count
+    int      image_height      = 100;   // Rendered image height
+    int      samples_per_pixel = 10;    // Count of random samples for each pixel
+    int      max_depth         = 10;    // Maximum number of ray bounces into scene
+    HMM_Vec3 background        = HMM_V3(0.70, 0.80, 1.00); // Scene background color
 
     float vfov        = 90.0f;            // Vertical view angle (field of view)
     HMM_Vec3 lookfrom = {0,0,-1};  // Point camera is looking from
@@ -161,19 +162,21 @@ private:
         if (depth <= 0)
             return HMM_Vec3{0,0,0};
 
+        // If the ray hits nothing, return the background color.
         hit_record rec;
-        if (world.hit(r, interval(0.001, infinity), rec))
-        {
-            ray scattered;
-            HMM_Vec3 attenuation;
-            if (rec.mat->scatter(r, rec, attenuation, scattered))
-                return attenuation * ray_color(scattered, depth-1, world);
-            return HMM_Vec3{0, 0, 0};
-        }
+        if (!world.hit(r, interval(0.001, infinity), rec))
+            return background;
 
-        HMM_Vec3 unit_direction = HMM_Norm(r.direction());
-        float a = 0.5f * (unit_direction.Y + 1.0f);
-        return HMM_Lerp(HMM_Vec3{1.0f, 1.0f, 1.0f}, a, HMM_Vec3{0.5f, 0.7f, 1.0f});
+        ray scattered;
+        HMM_Vec3 attenuation;
+        HMM_Vec3 color_from_emission = rec.mat->emitted(rec.u, rec.v, rec.p);
+
+        if (!rec.mat->scatter(r, rec, attenuation, scattered))
+            return color_from_emission;
+
+        HMM_Vec3 color_from_scatter = attenuation * ray_color(scattered, depth-1, world);
+
+        return color_from_emission + color_from_scatter;
     }
 };
 

@@ -202,16 +202,48 @@ void quads() {
     save_jpg(cam.image_width, cam.image_height, image_color_data, "quads.jpg");
 }
 
+void simple_light() {
+    hittable_list world;
+
+    auto pertext = std::make_shared<noise_texture>(4);
+    world.add(std::make_shared<sphere>(HMM_V3(0,-1000,0), 1000, std::make_shared<lambertian>(pertext)));
+    world.add(std::make_shared<sphere>(HMM_V3(0,2,0), 2, std::make_shared<lambertian>(pertext)));
+
+    auto difflight = std::make_shared<diffuse_light>(HMM_V3(4,4,4));
+    world.add(std::make_shared<sphere>(HMM_V3(0,7,0), 2, difflight));
+    world.add(std::make_shared<quad>(HMM_V3(3,1,-2), HMM_V3(2,0,0), HMM_V3(0,2,0), difflight));
+
+    camera cam;
+
+    cam.image_width       = 640;
+    cam.image_height      = 360;
+    cam.aspect_ratio      = 16.0f / 9.0f;
+    cam.max_depth         = 50;
+    cam.samples_per_pixel = 500;
+    cam.background        = HMM_V3(0,0,0);
+
+    cam.vfov     = 20;
+    cam.lookfrom = HMM_V3(26,3,6);
+    cam.lookat   = HMM_V3(0,2,0);
+    cam.vup      = HMM_V3(0,1,0);
+
+    cam.defocus_angle = 0;
+
+    std::vector<HMM_Vec3> image_color_data = cam.render(world);
+    save_jpg(cam.image_width, cam.image_height, image_color_data, "simple_light.jpg");
+}
+
 int main()
 {
     auto timeStart = std::chrono::high_resolution_clock::now();
 
-    switch (5) {
+    switch (6) {
         case 1: random_spheres();      break;
         case 2: two_spheres();         break;
         case 3: earth();               break;
         case 4: two_perlin_spheres();  break;
         case 5: quads();               break;
+        case 6: simple_light();        break;
     }
 
     auto timeEnd = std::chrono::high_resolution_clock::now();

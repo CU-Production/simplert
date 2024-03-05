@@ -12,6 +12,11 @@ public:
     virtual ~material() = default;
 
     virtual bool scatter(const ray& r_in, const hit_record& rec, HMM_Vec3& attenuation, ray& scattered) const = 0;
+
+    virtual HMM_Vec3 emitted(float u, float v, const HMM_Vec3& p) const
+    {
+        return HMM_V3(0, 0, 0);
+    }
 };
 
 class lambertian : public material
@@ -91,6 +96,26 @@ private:
         r0 = r0*r0;
         return r0 + (1-r0)*std::powf((1 - cosine), 5);
     }
+};
+
+class diffuse_light : public material
+{
+public:
+    diffuse_light(std::shared_ptr<texture> a) : emit(a) {}
+    diffuse_light(const HMM_Vec3& c) : emit(std::make_shared<solid_color>(c)) {}
+
+    bool scatter(const ray& r_in, const hit_record& rec, HMM_Vec3& attenuation, ray& scattered) const override
+    {
+        return false;
+    }
+
+    HMM_Vec3 emitted(float u, float v, const HMM_Vec3& p) const override
+    {
+        return emit->value(u, v, p);
+    }
+
+private:
+    std::shared_ptr<texture> emit;
 };
 
 #endif //SIMPLERT_MATERIAL_H
