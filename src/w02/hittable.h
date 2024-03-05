@@ -6,6 +6,8 @@
 #include "material.h"
 #include "aabb.h"
 
+#include <cmath>
+
 class hittable
 {
 public:
@@ -98,6 +100,79 @@ private:
         // center1, and t=1 yields center2.
         return center1 + time*center_vec;
     }
+};
+
+class quad : public hittable
+{
+public:
+    quad(const HMM_Vec3& _Q, const HMM_Vec3& _u, const HMM_Vec3& _v, std::shared_ptr<material> m) : Q(_Q), u(_u), v(_v), mat(m)
+    {
+        auto n = HMM_Cross(u, v);
+        normal = HMM_Norm(n);
+        D = HMM_Dot(normal, Q);
+        w = n / HMM_Dot(n, n);
+
+        set_bounding_box();
+    }
+
+    virtual void set_bounding_box()
+    {
+        bbox = aabb(Q, Q+u+v).pad();
+    }
+
+    aabb bounding_box() const override { return bbox; }
+
+    bool hit(const ray& r, interval ray_t, hit_record& rec) const override
+    {
+        auto denom = HMM_Dot(normal, r.direction());
+
+        // No hit if the ray is parallel to the plane.
+        if (std::fabsf(denom) < 1e-8)
+            return false;
+
+        // Return false if the hit point parameter t is outside the ray interval.
+        auto t = (D - HMM_Dot(normal, r.origin())) / denom;
+        if (!ray_t.contains(t))
+            return false;
+
+        // Determine the hit point lies within the planar shape using its plane coordinates.
+        auto intersection = r.at(t);
+        auto planar_hitpt_vector = intersection - Q;
+        auto alpha = HMM_Dot(w, HMM_Cross(planar_hitpt_vector, v));
+        auto beta = HMM_Dot(w, HMM_Cross(u, planar_hitpt_vector));
+
+        if (!is_interior(alpha, beta, rec))
+            return false;
+
+        rec.t = t;
+        rec.p = intersection;
+        rec.mat = mat;
+        rec.set_face_normal(r, normal);
+
+        return true;
+    }
+
+    virtual bool is_interior(float a, float b, hit_record& rec) const
+    {
+        // Given the hit point in plane coordinates, return false if it is outside the
+        // primitive, otherwise set the hit record UV coordinates and return true.
+
+        if ((a < 0) || (1 < a) || (b < 0) || (1 < b))
+            return false;
+
+        rec.u = a;
+        rec.v = b;
+        return true;
+    }
+
+private:
+    HMM_Vec3 Q;
+    HMM_Vec3 u, v;
+    std::shared_ptr<material> mat;
+    aabb bbox;
+    HMM_Vec3 normal;
+    float D;
+    HMM_Vec3 w;
 };
 
 class hittable_list : public hittable

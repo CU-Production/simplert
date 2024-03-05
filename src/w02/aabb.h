@@ -29,6 +29,17 @@ public:
         z = interval(box0.z, box1.z);
     }
 
+    aabb pad()
+    {
+        // Return an AABB that has no side narrower than some delta, padding if necessary.
+        float delta = 0.0001f;
+        interval new_x = (x.size() >= delta) ? x : x.expand(delta);
+        interval new_y = (y.size() >= delta) ? y : y.expand(delta);
+        interval new_z = (z.size() >= delta) ? z : z.expand(delta);
+
+        return aabb(new_x, new_y, new_z);
+    }
+
     const interval& axis(int n) const
     {
         if (n == 1) return y;

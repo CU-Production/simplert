@@ -42,6 +42,10 @@ public:
         return interval(min - padding, max + padding);
     }
 
+    float size() const {
+        return max - min;
+    }
+
     static const interval empty, universe;
 };
 const static interval empty   (+infinity, -infinity);
