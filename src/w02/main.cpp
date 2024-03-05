@@ -324,11 +324,93 @@ void cornell_smoke() {
     save_jpg(cam.image_width, cam.image_height, image_color_data, "cornell_smoke.jpg");
 }
 
+void final_scene(int image_width, int samples_per_pixel, int max_depth) {
+    hittable_list boxes1;
+    auto ground = std::make_shared<lambertian>(HMM_V3(0.48, 0.83, 0.53));
+
+    int boxes_per_side = 20;
+    for (int i = 0; i < boxes_per_side; i++) {
+        for (int j = 0; j < boxes_per_side; j++) {
+            auto w = 100.0;
+            auto x0 = -1000.0 + i*w;
+            auto z0 = -1000.0 + j*w;
+            auto y0 = 0.0;
+            auto x1 = x0 + w;
+            auto y1 = random_float(1,101);
+            auto z1 = z0 + w;
+
+            boxes1.add(box(HMM_V3(x0,y0,z0), HMM_V3(x1,y1,z1), ground));
+        }
+    }
+
+    hittable_list world;
+
+    world.add(std::make_shared<bvh_node>(boxes1));
+
+    auto light = std::make_shared<diffuse_light>(HMM_V3(7, 7, 7));
+    world.add(std::make_shared<quad>(HMM_V3(123,554,147), HMM_V3(300,0,0), HMM_V3(0,0,265), light));
+
+    auto center1 = HMM_V3(400, 400, 200);
+    auto center2 = center1 + HMM_V3(30,0,0);
+    auto sphere_material = std::make_shared<lambertian>(HMM_V3(0.7, 0.3, 0.1));
+    world.add(std::make_shared<sphere>(center1, center2, 50, sphere_material));
+
+    world.add(std::make_shared<sphere>(HMM_V3(260, 150, 45), 50, std::make_shared<dielectric>(1.5)));
+    world.add(std::make_shared<sphere>(
+        HMM_V3(0, 150, 145), 50, std::make_shared<metal>(HMM_V3(0.8, 0.8, 0.9), 1.0)
+    ));
+
+    auto boundary = std::make_shared<sphere>(HMM_V3(360,150,145), 70, std::make_shared<dielectric>(1.5));
+    world.add(boundary);
+    world.add(std::make_shared<constant_medium>(boundary, 0.2, HMM_V3(0.2, 0.4, 0.9)));
+    boundary = std::make_shared<sphere>(HMM_V3(0,0,0), 5000, std::make_shared<dielectric>(1.5));
+    world.add(std::make_shared<constant_medium>(boundary, .0001, HMM_V3(1,1,1)));
+
+    auto emat = std::make_shared<lambertian>(std::make_shared<image_texture>("earthmap.jpg"));
+    world.add(std::make_shared<sphere>(HMM_V3(400,200,400), 100, emat));
+    auto pertext = std::make_shared<noise_texture>(0.1);
+    world.add(std::make_shared<sphere>(HMM_V3(220,280,300), 80, std::make_shared<lambertian>(pertext)));
+
+    hittable_list boxes2;
+    auto white = std::make_shared<lambertian>(HMM_V3(.73, .73, .73));
+    int ns = 1000;
+    for (int j = 0; j < ns; j++) {
+        boxes2.add(std::make_shared<sphere>(Vec3::random_vec3(0,165), 10, white));
+    }
+
+    world.add(std::make_shared<translate>(
+        std::make_shared<rotate_y>(
+            std::make_shared<bvh_node>(boxes2), 15),
+            HMM_V3(-100,270,395)
+        )
+    );
+
+    camera cam;
+
+    cam.aspect_ratio      = 1.0;
+    cam.image_width       = image_width;
+    cam.image_height      = image_width;
+    cam.samples_per_pixel = samples_per_pixel;
+    cam.max_depth         = max_depth;
+    cam.background        = HMM_V3(0,0,0);
+
+    cam.vfov     = 40;
+    cam.lookfrom = HMM_V3(478, 278, -600);
+    cam.lookat   = HMM_V3(278, 278, 0);
+    cam.vup      = HMM_V3(0,1,0);
+
+    cam.defocus_angle = 0;
+
+    std::vector<HMM_Vec3> image_color_data = cam.render(world);
+    std::string final_scene_name = std::format("final_scene_spp{}.jpg", samples_per_pixel);
+    save_jpg(cam.image_width, cam.image_height, image_color_data, final_scene_name.c_str());
+}
+
 int main()
 {
     auto timeStart = std::chrono::high_resolution_clock::now();
 
-    switch (8) {
+    switch (10) {
         case 1: random_spheres();      break;
         case 2: two_spheres();         break;
         case 3: earth();               break;
@@ -337,6 +419,9 @@ int main()
         case 6: simple_light();        break;
         case 7: cornell_box();         break;
         case 8: cornell_smoke();       break;
+        case 9:  final_scene(256, 10000, 40); break;
+        case 10:  final_scene(256, 1000, 40); break;
+        default: final_scene(256,   250,  4); break;
     }
 
     auto timeEnd = std::chrono::high_resolution_clock::now();
