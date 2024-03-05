@@ -87,7 +87,8 @@ public:
 
     HMM_Vec3 value(float u, float v, const HMM_Vec3& p) const override
     {
-        return HMM_V3(1,1,1) * 0.5f * (1.0f + noise.noise(scale * p));
+        auto s = scale * p;
+        return HMM_V3(1,1,1) * noise.turb(s);
     }
 
 private:

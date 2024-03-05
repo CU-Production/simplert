@@ -49,6 +49,20 @@ public:
         return trilinear_interp(c, u, v, w);
     }
 
+    float turb(const HMM_Vec3& p, int depth=7) const {
+        auto accum = 0.0f;
+        auto temp_p = p;
+        auto weight = 1.0f;
+
+        for (int i = 0; i < depth; i++) {
+            accum += weight*noise(temp_p);
+            weight *= 0.5f;
+            temp_p *= 2;
+        }
+
+        return std::fabsf(accum);
+    }
+
 private:
     static const int point_count = 256;
     HMM_Vec3* ranvec;;
