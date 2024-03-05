@@ -51,6 +51,14 @@ public:
 const static interval empty   (+infinity, -infinity);
 const static interval universe(-infinity, +infinity);
 
+interval operator+(const interval& ival, float displacement) {
+    return interval(ival.min + displacement, ival.max + displacement);
+}
+
+interval operator+(float displacement, const interval& ival) {
+    return ival + displacement;
+}
+
 void push_color(std::vector<uint8_t>& image_data, HMM_Vec3 pixel_color)
 {
     image_data.push_back(static_cast<int>(255.999 * pixel_color.X));

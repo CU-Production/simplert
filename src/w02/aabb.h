@@ -70,4 +70,14 @@ public:
     }
 };
 
+aabb operator+(const aabb& bbox, const HMM_Vec3& offset)
+{
+    return aabb(bbox.x + offset.X, bbox.y + offset.Y, bbox.z + offset.Z);
+}
+
+aabb operator+(const HMM_Vec3& offset, const aabb& bbox)
+{
+    return bbox + offset;
+}
+
 #endif //SIMPLERT_AABB_H

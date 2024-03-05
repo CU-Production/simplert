@@ -311,4 +311,35 @@ inline std::shared_ptr<hittable_list> box(const HMM_Vec3& a, const HMM_Vec3& b, 
     return sides;
 }
 
+class translate : public hittable
+{
+public:
+    translate(std::shared_ptr<hittable> p, const HMM_Vec3& displacement) : object(p), offset(displacement)
+    {
+        bbox = object->bounding_box() + offset;
+    }
+
+    bool hit(const ray& r, interval ray_t, hit_record& rec) const override
+    {
+        // Move the ray backwards by the offset
+        ray offset_r(r.origin() - offset, r.direction(), r.time());
+
+        // Determine where (if any) an intersection occurs along the offset ray
+        if (!object->hit(offset_r, ray_t, rec))
+            return false;
+
+        // Move the intersection point forwards by the offset
+        rec.p += offset;
+
+        return true;
+    }
+
+    aabb bounding_box() const override { return bbox; }
+
+private:
+    std::shared_ptr<hittable> object;
+    HMM_Vec3 offset;
+    aabb bbox;
+};
+
 #endif //SIMPLERT_HITTABLE_H
