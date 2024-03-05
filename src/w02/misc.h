@@ -61,9 +61,11 @@ interval operator+(float displacement, const interval& ival) {
 
 void push_color(std::vector<uint8_t>& image_data, HMM_Vec3 pixel_color)
 {
-    image_data.push_back(static_cast<int>(255.999 * pixel_color.X));
-    image_data.push_back(static_cast<int>(255.999 * pixel_color.Y));
-    image_data.push_back(static_cast<int>(255.999 * pixel_color.Z));
+    // Write the translated [0,255] value of each color component.
+    static const interval intensity(0.000, 0.999);
+    image_data.push_back(static_cast<int>(255.999 * intensity.clamp(pixel_color.X)));
+    image_data.push_back(static_cast<int>(255.999 * intensity.clamp(pixel_color.Y)));
+    image_data.push_back(static_cast<int>(255.999 * intensity.clamp(pixel_color.Z)));
 }
 
 void save_jpg(int image_width, int image_height, const std::vector<HMM_Vec3>& image_color_data, const char* filename)

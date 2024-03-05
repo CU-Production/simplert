@@ -410,7 +410,7 @@ int main()
 {
     auto timeStart = std::chrono::high_resolution_clock::now();
 
-    switch (10) {
+    switch (9) {
         case 1: random_spheres();      break;
         case 2: two_spheres();         break;
         case 3: earth();               break;
