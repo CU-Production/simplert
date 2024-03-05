@@ -367,8 +367,8 @@ public:
                     HMM_Vec3 tester = HMM_V3(newx, y, newz);
 
                     for (int c = 0; c < 3; c++) {
-                        min[c] = fmin(min[c], tester[c]);
-                        max[c] = fmax(max[c], tester[c]);
+                        min[c] = std::fminf(min[c], tester[c]);
+                        max[c] = std::fmaxf(max[c], tester[c]);
                     }
                 }
             }

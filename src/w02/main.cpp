@@ -241,21 +241,21 @@ void cornell_box() {
     auto green = std::make_shared<lambertian>(HMM_V3(.12, .45, .15));
     auto light = std::make_shared<diffuse_light>(HMM_V3(15, 15, 15));
 
-    world.add(make_shared<quad>(HMM_V3(555,0,0), HMM_V3(0,555,0), HMM_V3(0,0,555), green));
-    world.add(make_shared<quad>(HMM_V3(0,0,0), HMM_V3(0,555,0), HMM_V3(0,0,555), red));
-    world.add(make_shared<quad>(HMM_V3(343, 554, 332), HMM_V3(-130,0,0), HMM_V3(0,0,-105), light));
-    world.add(make_shared<quad>(HMM_V3(0,0,0), HMM_V3(555,0,0), HMM_V3(0,0,555), white));
-    world.add(make_shared<quad>(HMM_V3(555,555,555), HMM_V3(-555,0,0), HMM_V3(0,0,-555), white));
-    world.add(make_shared<quad>(HMM_V3(0,0,555), HMM_V3(555,0,0), HMM_V3(0,555,0), white));
+    world.add(std::make_shared<quad>(HMM_V3(555,0,0), HMM_V3(0,555,0), HMM_V3(0,0,555), green));
+    world.add(std::make_shared<quad>(HMM_V3(0,0,0), HMM_V3(0,555,0), HMM_V3(0,0,555), red));
+    world.add(std::make_shared<quad>(HMM_V3(343, 554, 332), HMM_V3(-130,0,0), HMM_V3(0,0,-105), light));
+    world.add(std::make_shared<quad>(HMM_V3(0,0,0), HMM_V3(555,0,0), HMM_V3(0,0,555), white));
+    world.add(std::make_shared<quad>(HMM_V3(555,555,555), HMM_V3(-555,0,0), HMM_V3(0,0,-555), white));
+    world.add(std::make_shared<quad>(HMM_V3(0,0,555), HMM_V3(555,0,0), HMM_V3(0,555,0), white));
 
     std::shared_ptr<hittable> box1 = box(HMM_V3(0,0,0), HMM_V3(165,330,165), white);
-    box1 = make_shared<rotate_y>(box1, 15);
-    box1 = make_shared<translate>(box1, HMM_V3(265,0,295));
+    box1 = std::make_shared<rotate_y>(box1, 15);
+    box1 = std::make_shared<translate>(box1, HMM_V3(265,0,295));
     world.add(box1);
 
     std::shared_ptr<hittable> box2 = box(HMM_V3(0,0,0), HMM_V3(165,165,165), white);
-    box2 = make_shared<rotate_y>(box2, -18);
-    box2 = make_shared<translate>(box2, HMM_V3(130,0,65));
+    box2 = std::make_shared<rotate_y>(box2, -18);
+    box2 = std::make_shared<translate>(box2, HMM_V3(130,0,65));
     world.add(box2);
 
     camera cam;
@@ -286,23 +286,23 @@ void cornell_smoke() {
     auto green = std::make_shared<lambertian>(HMM_V3(.12, .45, .15));
     auto light = std::make_shared<diffuse_light>(HMM_V3(7, 7, 7));
 
-    world.add(make_shared<quad>(HMM_V3(555,0,0), HMM_V3(0,555,0), HMM_V3(0,0,555), green));
-    world.add(make_shared<quad>(HMM_V3(0,0,0), HMM_V3(0,555,0), HMM_V3(0,0,555), red));
-    world.add(make_shared<quad>(HMM_V3(113,554,127), HMM_V3(330,0,0), HMM_V3(0,0,305), light));
-    world.add(make_shared<quad>(HMM_V3(0,555,0), HMM_V3(555,0,0), HMM_V3(0,0,555), white));
-    world.add(make_shared<quad>(HMM_V3(0,0,0), HMM_V3(555,0,0), HMM_V3(0,0,555), white));
-    world.add(make_shared<quad>(HMM_V3(0,0,555), HMM_V3(555,0,0), HMM_V3(0,555,0), white));
+    world.add(std::make_shared<quad>(HMM_V3(555,0,0), HMM_V3(0,555,0), HMM_V3(0,0,555), green));
+    world.add(std::make_shared<quad>(HMM_V3(0,0,0), HMM_V3(0,555,0), HMM_V3(0,0,555), red));
+    world.add(std::make_shared<quad>(HMM_V3(113,554,127), HMM_V3(330,0,0), HMM_V3(0,0,305), light));
+    world.add(std::make_shared<quad>(HMM_V3(0,555,0), HMM_V3(555,0,0), HMM_V3(0,0,555), white));
+    world.add(std::make_shared<quad>(HMM_V3(0,0,0), HMM_V3(555,0,0), HMM_V3(0,0,555), white));
+    world.add(std::make_shared<quad>(HMM_V3(0,0,555), HMM_V3(555,0,0), HMM_V3(0,555,0), white));
 
     std::shared_ptr<hittable> box1 = box(HMM_V3(0,0,0), HMM_V3(165,330,165), white);
-    box1 = make_shared<rotate_y>(box1, 15);
-    box1 = make_shared<translate>(box1, HMM_V3(265,0,295));
+    //box1 = std::make_shared<rotate_y>(box1, 15);
+    box1 = std::make_shared<translate>(box1, HMM_V3(265,0,295));
 
     std::shared_ptr<hittable> box2 = box(HMM_V3(0,0,0), HMM_V3(165,165,165), white);
-    box2 = make_shared<rotate_y>(box2, -18);
-    box2 = make_shared<translate>(box2, HMM_V3(130,0,65));
+    //box2 = std::make_shared<rotate_y>(box2, -18);
+    box2 = std::make_shared<translate>(box2, HMM_V3(130,0,65));
 
-    world.add(make_shared<constant_medium>(box1, 0.01, HMM_V3(0,0,0)));
-    world.add(make_shared<constant_medium>(box2, 0.01, HMM_V3(1,1,1)));
+    world.add(std::make_shared<constant_medium>(box1, 0.01, HMM_V3(0,0,0)));
+    world.add(std::make_shared<constant_medium>(box2, 0.01, HMM_V3(1,1,1)));
 
     camera cam;
 
